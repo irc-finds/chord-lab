@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>D#A#D#F#G#D# Chord Chart</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+/* Layout: a chord book. Tuning header, one interactive neck that shows the moving shape, a sticky bar for display options and degree filter, then grids of tap-to-hear chord boxes grouped by hand position. */
+:root {
+  --bg: #eceef2;
+  --surface: #f8f9fb;
+  --ink: #181b25;
+  --on-ink: #f8f9fb;
+  --muted: #5c6376;
+  --line: #c6cad5;
+  --faint: #dde0e7;
+  --accent: #b03f6a;        /* open strings that ring = the drone */
+  --accent-soft: rgba(176, 63, 106, 0.12);
+  --root: #1d6b74;          /* chord root */
+  --on-root: #ffffff;
+  --font-display: "Archivo Narrow", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12141b; --surface: #1a1d26; --ink: #e6e8ef; --on-ink: #12141b; --muted: #9aa1b4;
+    --line: #363a48; --faint: #262a35; --accent: #ec8db0; --accent-soft: rgba(236, 141, 176, 0.14);
+    --root: #5cc3cc; --on-root: #0d1a1c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12141b; --surface: #1a1d26; --ink: #e6e8ef; --on-ink: #12141b; --muted: #9aa1b4;
+  --line: #363a48; --faint: #262a35; --accent: #ec8db0; --accent-soft: rgba(236, 141, 176, 0.14);
+  --root: #5cc3cc; --on-root: #0d1a1c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 40px; }
+.groups { display: grid; gap: 44px; min-width: 0; }
+h1, h2 { font-family: var(--font-display); font-weight: 700; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(36px, 7vw, 64px); line-height: 1; }
+h2 { font-size: 26px; line-height: 1.15; }
+p { margin: 0; max-width: 66ch; }
+.eyebrow { font-family: var(--font-data); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+.drone { color: var(--accent); font-weight: 600; }
+.rootc { color: var(--root); font-weight: 600; }
+
+/* header */
+header { display: grid; gap: 18px; }
+.strings { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.strings div { padding: 10px 8px; display: grid; gap: 2px; text-align: center; border-left: 1px solid var(--faint); }
+.strings div:first-child { border-left: 0; }
+.strings .num { font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+.strings .pitch { font-family: var(--font-display); font-weight: 700; font-size: 24px; }
+.strings .chg { font-family: var(--font-data); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.strings .up { color: var(--accent); }
+.head-row { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+.notes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px 32px; }
+.notes-grid p { font-size: 14px; }
+
+button { font: inherit; color: inherit; }
+.play-btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px;
+  border: 1.5px solid var(--ink); background: var(--ink); color: var(--bg); font-weight: 600; cursor: pointer;
+}
+.play-btn:hover { opacity: 0.88; }
+.play-btn svg { width: 12px; height: 12px; fill: currentColor; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* neck */
+.neck-sec { display: grid; gap: 14px; }
+.neck-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.neck-scroll svg { display: block; width: 100%; min-width: 680px; height: auto; }
+.stop { cursor: pointer; }
+.stop text { font-family: var(--font-display); font-weight: 600; font-size: 14px; fill: var(--muted); transition: fill .15s; }
+.stop .hit { fill: transparent; }
+.stop:hover text, .stop:focus-visible text { fill: var(--ink); }
+.stop.on text { fill: var(--accent); }
+.stop:focus { outline: none; }
+.stop:focus-visible .hit { stroke: var(--accent); stroke-width: 1.5; }
+
+/* sticky bar: display options + filter */
+.bar { display: grid; gap: 10px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 10px; border-bottom: 1px solid var(--faint); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.options { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; }
+.seg-wrap { display: flex; align-items: center; gap: 8px; }
+.seg-wrap .eyebrow { font-size: 11px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); padding: 2px; }
+.seg button { border: 0; background: transparent; border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--muted); }
+.seg button[aria-label] { font-size: 16px; line-height: 1.1; padding: 3px 13px; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chips .sep { width: 1px; height: 22px; background: var(--line); margin: 0 6px; }
+.chip {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 11px; cursor: pointer;
+  display: inline-flex; gap: 6px; align-items: baseline; font-size: 13px;
+}
+.chip b { font-family: var(--font-data); font-weight: 500; font-size: 12px; }
+.chip span { font-family: var(--font-display); font-weight: 600; font-size: 14px; }
+.chip.borrowed { border-style: dashed; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* sections + cards */
+section.group { display: grid; gap: 16px; }
+.group-head { display: grid; gap: 6px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); gap: 12px; }
+.card {
+  text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 12px 14px;
+  cursor: pointer; display: grid; gap: 6px; align-content: start; transition: border-color .15s, box-shadow .15s; min-width: 0;
+}
+.card:hover { border-color: var(--muted); }
+.card.playing { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.card-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card-name { font-family: var(--font-display); font-weight: 700; font-size: 21px; line-height: 1.1; }
+.deg { font-family: var(--font-data); font-size: 11.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
+.deg.borrowed { border-style: dashed; }
+.deg.out { color: var(--accent); border-color: var(--accent); }
+.card svg { width: 100%; max-width: 210px; height: auto; justify-self: center; }
+.dot-label { font-family: var(--font-data); font-weight: 700; }
+.frets { font-family: var(--font-data); font-size: 13px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
+.pitches { font-family: var(--font-data); font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+.formula { font-size: 12.5px; color: var(--muted); }
+.formula strong { color: var(--root); font-weight: 600; }
+.note { font-size: 12.5px; color: var(--muted); }
+
+footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
+
+@media (max-width: 520px) {
+  .strings .pitch { font-size: 19px; }
+  .strings div { padding: 8px 2px; }
+  .strings .long { display: none; }
+  .bar { position: static; }
+  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .card { padding: 10px 8px 12px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Chord chart · open tuning</div>
+    <h1>D# A# D# F# G# D#</h1>
+    <div class="strings" id="strings" aria-label="Tuning, string 6 to string 1"></div>
+    <div class="head-row">
+      <button class="play-btn" id="play-open" type="button"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 0.5L9.5 5L1 9.5z"/></svg>Hear the open strings</button>
+      <span class="muted">Tap any chord to hear it strummed.</span>
+    </div>
+    <div class="notes-grid">
+      <p>The open strings spell <strong>D#m(add11)</strong>: D#, F#, G# and A#, four of the five notes of D# minor pentatonic. The missing one, C#, sits at fret 3 on string 5 and fret 5 on string 2.</p>
+      <p><span class="drone">Pink rings</span> above the nut are open strings. Most chords here leave strings 2 and 1 open, so G#3 and D#4 ring under nearly everything as a drone. <span class="rootc">Teal</span> marks the root.</p>
+      <p class="muted">Strings 5 and 4 go up a half step, about 12% more tension. String 2 drops three half steps and loses about 29%, so it may flap or buzz; a heavier string 2 helps.</p>
+    </div>
+  </header>
+
+  <section class="neck-sec" aria-labelledby="neck-h">
+    <div class="group-head">
+      <div class="eyebrow">The moving shape</div>
+      <h2 id="neck-h">One shape walks the whole key</h2>
+      <p>Barre strings 6 to 4 and add one finger on string 3: the same fret gives a minor chord, one fret higher gives a major one. Strings 2 and 1 stay open, and their G# and D# fit every stop. Frets are drawn to real spacing.</p>
+    </div>
+    <div class="neck-scroll"><svg id="neck" viewBox="0 0 800 232" role="group" aria-label="Fretboard from the nut to fret 12 showing where the moving shape lands"></svg></div>
+  </section>
+
+  <div class="bar">
+    <div class="options">
+      <div class="seg-wrap"><span class="eyebrow" id="show-l">Show</span>
+        <div class="seg" role="group" aria-labelledby="show-l" id="seg-mode">
+          <button type="button" data-v="dots">Dots</button><button type="button" data-v="notes">Notes</button><button type="button" data-v="intervals">Intervals</button>
+        </div>
+      </div>
+      <div class="seg-wrap"><span class="eyebrow" id="spell-l">Spelling</span>
+        <div class="seg" role="group" aria-labelledby="spell-l" id="seg-spell">
+          <button type="button" data-v="sharp" aria-label="Sharps">♯</button><button type="button" data-v="flat" aria-label="Flats">♭</button>
+        </div>
+      </div>
+    </div>
+    <div class="chips" id="chips" aria-label="Filter by degree in D# minor"></div>
+  </div>
+
+  <div id="groups" class="groups"></div>
+
+  <footer>
+    <p>Degrees are in D# natural minor. Dashed tags are borrowed: bII from Phrygian, IV from Dorian, V and I from harmonic minor and its major tonic. On the weird ones, the pink tag lists the notes outside D# minor.</p>
+    <p>Sound is a synthesized plucked string at the pitches above, not a recording.</p>
+  </footer>
+</div>
+
+<script>
+(() => {
+  // String 6 -> string 1
+  const TUNING = [39, 46, 51, 54, 56, 63]; // D#2 A#2 D#3 F#3 G#3 D#4
+  const STANDARD = [40, 45, 50, 55, 59, 64];
+  const SHARP = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const FLAT  = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+  const TO_FLAT = { 'C#': 'Db', 'D#': 'Eb', 'E#': 'F', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb', 'B#': 'C' };
+  const PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+
+  const state = { mode: 'notes', spell: 'sharp', filter: 'all', neckChord: 'c5m' };
+  try { const s = JSON.parse(localStorage.getItem('dsharp-chart') || '{}'); if (['dots','notes','intervals'].includes(s.mode)) state.mode = s.mode; if (['sharp','flat'].includes(s.spell)) state.spell = s.spell; } catch (e) {}
+  const save = () => { try { localStorage.setItem('dsharp-chart', JSON.stringify({ mode: state.mode, spell: state.spell })); } catch (e) {} };
+
+  const letter = m => (state.spell === 'flat' ? FLAT : SHARP)[((m % 12) + 12) % 12];
+  const pname = m => letter(m) + (Math.floor(m / 12) - 1);
+  const cname = n => state.spell === 'flat' ? n.replace(/([A-G])#/g, (_, l) => TO_FLAT[l + '#']) : n;
+  const rootPc = name => { const m = name.match(/^([A-G])([#b]?)/); return (PC[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0) + 12) % 12; };
+  const SEMI = { R: 0, b9: 1, '9': 2, b3: 3, '#9': 3, '3': 4, '4': 5, '11': 5, b5: 6, '#11': 6, '5': 7, '#5': 8, b13: 8, '6': 9, '13': 9, b7: 10, '7': 11 };
+  const DEFAULT_IV = ['R','b9','9','b3','3','11','#11','5','#5','6','b7','7'];
+  function ivLabel(c, midi) {
+    const d = ((midi - rootPc(c.name)) % 12 + 12) % 12;
+    const tok = c.formula.split(' ').find(t => SEMI[t] === d);
+    return tok || DEFAULT_IV[d];
+  }
+
+  const DEGREES = [
+    { id: 'i', chord: 'D#m' }, { id: 'ii°', chord: 'E#m7b5' }, { id: 'III', chord: 'F#' }, { id: 'iv', chord: 'G#m' },
+    { id: 'v', chord: 'A#m' }, { id: 'VI', chord: 'B' }, { id: 'VII', chord: 'C#' },
+    { sep: true },
+    { id: 'bII', chord: 'E', borrowed: true }, { id: 'IV', chord: 'G#', borrowed: true },
+    { id: 'V', chord: 'A#', borrowed: true }, { id: 'I', chord: 'D#', borrowed: true },
+    { sep: true },
+    { id: 'weird', label: 'Weird ones' }
+  ];
+  const KEY_PCS = new Set([3, 5, 6, 8, 10, 11, 1]);
+  const outNotes = c => {
+    const pcs = []; c.f.forEach((v, i) => { if (v === null) return; const pc = (TUNING[i] + v) % 12; if (!KEY_PCS.has(pc) && !pcs.includes(pc)) pcs.push(pc); });
+    return pcs.length ? '+' + pcs.sort((a, b) => a - b).map(pc => letter(pc + 60)).join(' ') : 'in key';
+  };
+  const BORROWED = new Set(['bII', 'IV', 'V', 'I']);
+  const X = null; // muted string
+
+  // barre: [fret, fromString, toString] using string numbers 6..1
+  const GROUPS = [
+    { id: 'drone', eyebrow: 'Shape 1 · strings 2 and 1 open', title: 'The moving shape, stop by stop',
+      text: 'Each stop from the neck above. Index barres strings 6 to 4; one more finger on string 3.',
+      chords: [
+        { id: 'c0', name: 'D#m(add11)', deg: 'i', f: [0,0,0,0,0,0], formula: 'R b3 5 11', note: 'All open.' },
+        { id: 'c1', name: 'Emaj9', deg: 'bII', f: [1,1,1,0,0,0], barre: [1,6,4], formula: 'R 3 5 7 9', note: 'One finger; string 3 stays open for the 9th. Slide it down to the open strum.' },
+        { id: 'c3', name: 'F#6/9', deg: 'III', f: [3,3,3,4,0,0], barre: [3,6,4], formula: 'R 3 5 6 9' },
+        { id: 'c5m', name: 'G#m', deg: 'iv', f: [5,5,5,5,0,0], barre: [5,6,3], formula: 'R b3 5' },
+        { id: 'c5M', name: 'G#', deg: 'IV', f: [5,5,5,6,0,0], barre: [5,6,4], formula: 'R 3 5', note: 'Move one finger to switch G#m and G#.' },
+        { id: 'c7', name: 'A#m11', deg: 'v', f: [7,7,7,7,0,0], barre: [7,6,3], formula: 'R b3 5 b7 11' },
+        { id: 'c8', name: 'B6', deg: 'VI', f: [8,8,8,9,0,0], barre: [8,6,4], formula: 'R 3 5 6' },
+        { id: 'c10', name: 'C#add9', deg: 'VII', f: [10,10,10,11,0,0], barre: [10,6,4], formula: 'R 3 5 9' },
+        { id: 'c12', name: 'D#m(add11)', deg: 'i', f: [12,12,12,12,0,0], barre: [12,6,3], formula: 'R b3 5 11', note: 'Octave up.' }
+      ] },
+    { id: 'home', eyebrow: 'Open position · around D#', title: 'Colors of the home chord',
+      text: 'Keep strings 6 to 4 open and change only the top three.',
+      chords: [
+        { name: 'D#m', deg: 'i', f: [0,0,0,0,2,0], formula: 'R b3 5', note: 'The plain triad: string 2 covers the G#.' },
+        { name: 'D#m(add9)', deg: 'i', f: [0,0,0,0,2,2], barre: [2,2,1], formula: 'R b3 5 9' },
+        { name: 'D#m7', deg: 'i', f: [0,0,0,0,5,0], formula: 'R b3 5 b7' },
+        { name: 'D#sus2', deg: 'i', f: [0,0,0,4,2,2], barre: [2,2,1], formula: 'R 5 9' },
+        { name: 'D#sus4', deg: 'i', f: [0,0,0,2,0,0], formula: 'R 4 5', note: 'Fretted and open G# in unison.' },
+        { name: 'D#', deg: 'I', f: [0,0,0,1,2,0], formula: 'R 3 5' },
+        { name: 'D#7', deg: 'I', f: [0,0,0,1,5,0], formula: 'R 3 5 b7', note: 'Pulls toward G#m.' }
+      ] },
+    { id: 'low', eyebrow: 'Open position · one or two fingers', title: 'B, C# and F# near the nut',
+      text: 'Open D#, F# and G# on strings 4 to 2 complete B and C# chords with very little fretting.',
+      chords: [
+        { name: 'B6', deg: 'VI', f: [X,1,0,0,0,0], formula: 'R 3 5 6', note: 'One finger.' },
+        { name: 'B', deg: 'VI', f: [X,1,0,0,3,0], formula: 'R 3 5' },
+        { name: 'B/D#', deg: 'VI', f: [0,1,0,0,3,0], formula: 'R 3 5', note: 'Same grip with the low D# ringing.' },
+        { name: 'Bmaj7', deg: 'VI', f: [X,1,0,0,2,0], formula: 'R 3 5 7' },
+        { name: 'Bmaj7(#11)', deg: 'VI', f: [X,1,0,0,2,2], barre: [2,2,1], formula: 'R 3 5 7 #11', note: 'Lydian color; E# is in the key.' },
+        { name: 'C#add9', deg: 'VII', f: [X,3,2,2,0,0], barre: [2,4,3], formula: 'R 3 5 9' },
+        { name: 'C#6', deg: 'VII', f: [X,3,2,2,2,2], barre: [2,4,1], formula: 'R 3 5 6' },
+        { name: 'F#6/9', deg: 'III', f: [3,0,0,0,0,0], formula: 'R 3 6 9', note: 'The open strum over an F# bass.' },
+        { name: 'E#m7b5', deg: 'ii°', f: [X,X,2,2,3,0], barre: [2,4,3], formula: 'R b3 b5 b7' }
+      ] },
+    { id: 'barre', eyebrow: 'Higher up · full and partial barres', title: 'Barre chords',
+      text: 'A barre across all six strings gives m(add11) at any fret; at 0, 5 and 7 it stays in the key.',
+      chords: [
+        { name: 'G#m(add11)', deg: 'iv', f: [5,5,5,5,5,5], barre: [5,6,1], formula: 'R b3 5 11' },
+        { name: 'A#m(add11)', deg: 'v', f: [7,7,7,7,7,7], barre: [7,6,1], formula: 'R b3 5 11' },
+        { name: 'A#m7', deg: 'v', f: [7,7,7,7,0,X], barre: [7,6,3], formula: 'R b3 5 b7' },
+        { name: 'A#', deg: 'V', f: [7,7,7,8,X,X], barre: [7,6,4], formula: 'R 3 5' },
+        { name: 'A#7', deg: 'V', f: [7,7,7,8,0,X], barre: [7,6,4], formula: 'R 3 5 b7', note: 'Strongest pull back to D#m.' }
+      ] },
+    { id: 'add9', eyebrow: 'Full voicings · grip 1', title: 'Your add9 grip, every degree',
+      text: 'Barre the root fret across all six strings. Strings 4 and 2 go two frets up; string 3 goes one fret up for major, or stays on the barre for minor.',
+      chords: [
+        { name: 'D#m(add9)', deg: 'i', f: [0,0,2,0,2,0], formula: 'R b3 5 9', note: 'The grip at fret 0: open strings do the barre.' },
+        { name: 'D#add9', deg: 'I', f: [0,0,2,1,2,0], formula: 'R 3 5 9' },
+        { name: 'Eadd9', deg: 'bII', f: [1,1,3,2,3,1], barre: [1,6,1], formula: 'R 3 5 9' },
+        { name: 'F#add9', deg: 'III', f: [3,3,5,4,5,3], barre: [3,6,1], formula: 'R 3 5 9' },
+        { name: 'G#m(add9)', deg: 'iv', f: [5,5,7,5,7,5], barre: [5,6,1], formula: 'R b3 5 9' },
+        { name: 'G#add9', deg: 'IV', f: [5,5,7,6,7,5], barre: [5,6,1], formula: 'R 3 5 9' },
+        { name: 'A#m(add9)', deg: 'v', f: [7,7,9,7,9,7], barre: [7,6,1], formula: 'R b3 5 9', note: 'Your shape. Its 9th, C, sits outside D# minor: a Dorian touch.' },
+        { name: 'A#add9', deg: 'V', f: [7,7,9,8,9,7], barre: [7,6,1], formula: 'R 3 5 9', note: 'Your shape.' },
+        { name: 'Badd9', deg: 'VI', f: [8,8,10,9,10,8], barre: [8,6,1], formula: 'R 3 5 9' },
+        { name: 'C#add9', deg: 'VII', f: [10,10,12,11,12,10], barre: [10,6,1], formula: 'R 3 5 9' }
+      ] },
+    { id: 'sevenths', eyebrow: 'Full voicings · grip 2', title: '7th chords from the same root',
+      text: 'Barre the root fret and reach the pinky three frets up on string 5 for the b7. String 3 chooses minor or major; string 2 gives the 5th two frets up, or the b5 one fret up.',
+      chords: [
+        { name: 'D#m7', deg: 'i', f: [0,3,0,0,2,0], formula: 'R b3 5 b7' },
+        { name: 'D#7', deg: 'I', f: [0,3,0,1,2,0], formula: 'R 3 5 b7', note: 'Pulls toward G#m.' },
+        { name: 'E#m7b5', deg: 'ii°', f: [2,5,2,2,3,2], barre: [2,6,1], formula: 'R b3 b5 b7' },
+        { name: 'G#m7', deg: 'iv', f: [5,8,5,5,7,5], barre: [5,6,1], formula: 'R b3 5 b7' },
+        { name: 'G#7', deg: 'IV', f: [5,8,5,6,7,5], barre: [5,6,1], formula: 'R 3 5 b7' },
+        { name: 'A#m7', deg: 'v', f: [7,10,7,7,9,7], barre: [7,6,1], formula: 'R b3 5 b7' },
+        { name: 'A#7', deg: 'V', f: [7,10,7,8,9,7], barre: [7,6,1], formula: 'R 3 5 b7', note: 'The full V7, all six strings.' },
+        { name: 'C#7', deg: 'VII', f: [10,13,10,11,12,10], barre: [10,6,1], formula: 'R 3 5 b7' }
+      ] },
+    { id: 'ninths', eyebrow: 'Full voicings · grip 3', title: '9th chords, root on strings 6 and 5',
+      text: 'Root and 5th on strings 6 and 5; the top four strings sit one or two frets lower and add the 3rd, 7th and 9th. Covers the maj7 degrees, III and VI.',
+      chords: [
+        { name: 'D#m9', deg: 'i', f: [12,12,10,11,10,10], barre: [10,4,1], formula: 'R b3 5 b7 9' },
+        { name: 'D#maj9', deg: 'I', f: [12,12,11,11,11,11], barre: [11,4,1], formula: 'R 3 5 7 9' },
+        { name: 'F#maj9', deg: 'III', f: [3,3,2,2,2,2], barre: [2,4,1], formula: 'R 3 5 7 9' },
+        { name: 'G#m9', deg: 'iv', f: [5,5,3,4,3,3], barre: [3,4,1], formula: 'R b3 5 b7 9' },
+        { name: 'A#m9', deg: 'v', f: [7,7,5,6,5,5], barre: [5,4,1], formula: 'R b3 5 b7 9', note: 'The 9th, C, is outside the key, like your add9.' },
+        { name: 'A#9', deg: 'V', f: [7,7,5,6,6,5], barre: [5,4,1], formula: 'R 3 5 b7 9' },
+        { name: 'Bmaj9', deg: 'VI', f: [8,8,7,7,7,7], barre: [7,4,1], formula: 'R 3 5 7 9' },
+        { name: 'C#9', deg: 'VII', f: [10,10,8,9,9,8], barre: [8,4,1], formula: 'R 3 5 b7 9' }
+      ] },
+    { id: 'modes', weird: true, eyebrow: 'Weird ones · D# stays in the bass', title: 'Same root, different modes',
+      text: 'Each keeps the low D# drone and frets two notes. Which two you fret decides the mode. Tags show the notes outside D# minor.',
+      chords: [
+        { name: 'D#(#11)', f: [0,0,0,1,1,0], barre: [1,3,2], formula: 'R 3 5 #11', note: 'Lydian: G and A over the drone.' },
+        { name: 'D#maj7(13)', f: [0,0,0,6,6,0], barre: [6,3,2], formula: 'R 5 7 13', note: 'Your chord. Major side: C and D, no 3rd, D against the open D#.' },
+        { name: 'D#m6/9', f: [0,0,0,0,9,9], barre: [9,2,1], formula: 'R b3 5 6 9', note: 'Dorian: the natural 6th, C, on top.' },
+        { name: 'D#m(addb9)', f: [0,0,0,10,10,0], barre: [10,3,2], formula: 'R b9 b3 5', note: 'Phrygian: E4 rubs against the open D#4.' },
+        { name: 'D#(b9, 11)', f: [0,0,1,1,0,0], barre: [1,4,3], formula: 'R b9 3 11 5', note: 'Phrygian dominant: major 3rd plus b9. G and G# rub on strings 3 and 2.' },
+        { name: 'D#m(b9, #11)', f: [0,0,0,0,1,1], barre: [1,2,1], formula: 'R b9 b3 #11 5', note: 'The darkest: E and A, the two Locrian notes, over the drone.' },
+        { name: 'D#maj7(b9)', f: [0,0,0,8,8,0], barre: [8,3,2], formula: 'R b9 5 7', note: 'D, D# and E in a row on the top three strings.' },
+        { name: 'D#maj7(#9)', f: [0,0,0,0,11,11], barre: [11,2,1], formula: 'R #9 3 5 7', note: 'Split third: minor 3rd low (F#3), major 3rd high (G4).' }
+      ] },
+    { id: 'roots', weird: true, eyebrow: 'Weird ones · new bass, open top', title: 'Other roots under the drone',
+      text: 'One finger or one barre on the low strings changes the root while the open strings keep ringing.',
+      chords: [
+        { name: 'Emaj9(#11)', f: [1,0,0,0,0,0], formula: 'R 3 7 9 #11', note: 'One finger. E Lydian; slide it down to the open strum.' },
+        { name: 'Fm7(b9)', f: [2,2,2,0,0,0], barre: [2,6,4], formula: 'R b9 b3 5 b7', note: 'F Phrygian. F3 and F#3 rub on strings 4 and 3.' },
+        { name: 'D#m(add11)/G', f: [4,0,0,0,0,0], formula: 'R b3 3 5 11', note: 'A minor chord over its own major 3rd: the G from your progression under the open strum.' },
+        { name: 'Gmaj7(b9, b13)', f: [4,4,4,0,0,0], barre: [4,6,4], formula: 'R b9 5 b13 7', note: 'F#3, G3 and G#3 stacked across strings 3, 4 and 2.' },
+        { name: 'A6/maj7(#11)', f: [6,6,6,0,0,0], barre: [6,6,4], formula: 'R 5 6 7 #11', note: 'A tritone from home. A Lydian, very open.' },
+        { name: 'D#m(add11)/A', f: [6,0,0,0,0,0], formula: 'R b3 11 #11 5', note: 'Tritone bass. A2 rubs against the open A#2: muddy on purpose.' },
+        { name: 'D(b9, #11)', f: [11,11,11,0,0,0], barre: [11,6,4], formula: 'R b9 3 #11 5', note: 'D major a half step below home, with D4 against the open D#4. Resolve up to the open strum.' }
+      ] }
+  ];
+
+  const NECK_STOPS = [
+    { fret: 0, chord: 'c0', row: 'up' }, { fret: 5, chord: 'c5m', row: 'up' }, { fret: 7, chord: 'c7', row: 'up' }, { fret: 12, chord: 'c12', row: 'up' },
+    { fret: 1, chord: 'c1', row: 'down' }, { fret: 3, chord: 'c3', row: 'down' }, { fret: 5, chord: 'c5M', row: 'down' },
+    { fret: 8, chord: 'c8', row: 'down' }, { fret: 10, chord: 'c10', row: 'down' }
+  ];
+
+  const byId = {};
+  GROUPS.forEach(g => g.chords.forEach((c, i) => { if (!c.id) c.id = g.id + i; if (g.weird) { c.deg = 'weird'; c.weird = true; } byId[c.id] = c; }));
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => {
+    const n = document.createElementNS(svgNS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  const txt = (parent, x, y, s, attrs) => { const t = el('text', Object.assign({ x, y, 'text-anchor': 'middle' }, attrs), parent); t.textContent = s; return t; };
+  const labelFor = (c, midi) => state.mode === 'notes' ? letter(midi) : state.mode === 'intervals' ? ivLabel(c, midi) : '';
+  const fontFor = s => s.length >= 3 ? 8.4 : s.length === 2 ? 10 : 11.5;
+
+  // one note marker: filled dot (fretted) or ring (open)
+  function marker(parent, c, midi, cx, cy, r, open) {
+    const isRoot = ((midi % 12) === rootPc(c.name));
+    const lab = labelFor(c, midi);
+    if (open) {
+      const col = isRoot ? 'var(--root)' : 'var(--accent)';
+      el('circle', { cx, cy, r: lab ? r : r * 0.55, fill: 'var(--surface)', stroke: col, 'stroke-width': 1.8 }, parent);
+      if (lab) txt(parent, cx, cy + fontFor(lab) * 0.36, lab, { class: 'dot-label', 'font-size': fontFor(lab), fill: col });
+    } else {
+      el('circle', { cx, cy, r, fill: isRoot ? 'var(--root)' : 'var(--ink)' }, parent);
+      if (lab) txt(parent, cx, cy + fontFor(lab) * 0.36, lab, { class: 'dot-label', 'font-size': fontFor(lab), fill: isRoot ? 'var(--on-root)' : 'var(--on-ink)' });
+    }
+  }
+
+  /* ---------- tuning header ---------- */
+  const stringsEl = document.getElementById('strings');
+  function renderStrings() {
+    stringsEl.innerHTML = '';
+    TUNING.forEach((m, i) => {
+      const d = m - STANDARD[i];
+      const cell = document.createElement('div');
+      cell.innerHTML = `<span class="num"><span class="long">String </span>${6 - i}</span><span class="pitch">${pname(m)}</span><span class="chg ${d > 0 ? 'up' : ''}">${d > 0 ? '+' + d : d === 0 ? '0' : '−' + Math.abs(d)}<span class="long"> from std</span></span>`;
+      stringsEl.appendChild(cell);
+    });
+  }
+
+  /* ---------- chord diagram ---------- */
+  function diagram(c) {
+    const fretted = c.f.filter(v => v !== null && v > 0);
+    const max = fretted.length ? Math.max(...fretted) : 0;
+    const min = fretted.length ? Math.min(...fretted) : 1;
+    const base = (min >= 3 || max > 5) ? min : 1;
+    const sx = i => 42 + i * 23, y0 = 46, fh = 26, rows = 5, r = 10.6;
+    const labels = state.mode !== 'dots';
+    const svg = el('svg', { viewBox: '0 0 180 184', 'aria-hidden': 'true' });
+    for (let k = 0; k <= rows; k++) el('line', { x1: sx(0), x2: sx(5), y1: y0 + k * fh, y2: y0 + k * fh, stroke: 'var(--line)', 'stroke-width': 1.2 }, svg);
+    for (let i = 0; i < 6; i++) el('line', { x1: sx(i), x2: sx(i), y1: y0, y2: y0 + rows * fh, stroke: 'var(--muted)', 'stroke-width': 1 + (5 - i) * 0.18 }, svg);
+    if (base === 1) el('rect', { x: sx(0) - 1, y: y0 - 4, width: sx(5) - sx(0) + 2, height: 5, fill: 'var(--ink)', rx: 1 }, svg);
+    else txt(svg, sx(0) - 12, y0 + fh / 2 + 4, base + 'fr', { 'text-anchor': 'end', 'font-size': 12, 'font-family': 'var(--font-data)', fill: 'var(--muted)' });
+    const covered = new Set();
+    if (c.barre) {
+      const [bf, from, to] = c.barre; const a = 6 - from, b = 6 - to; const cy = y0 + (bf - base + 0.5) * fh;
+      for (let i = a; i <= b; i++) if (c.f[i] === bf) covered.add(i);
+      el('rect', { x: sx(a) - r, y: cy - r, width: sx(b) - sx(a) + 2 * r, height: 2 * r, rx: r, fill: 'var(--ink)', 'fill-opacity': labels ? 0.22 : 1 }, svg);
+    }
+    c.f.forEach((v, i) => {
+      if (v === null) {
+        const g = el('g', { stroke: 'var(--muted)', 'stroke-width': 1.6, 'stroke-linecap': 'round' }, svg);
+        el('line', { x1: sx(i) - 4, x2: sx(i) + 4, y1: 19, y2: 27 }, g); el('line', { x1: sx(i) - 4, x2: sx(i) + 4, y1: 27, y2: 19 }, g);
+        return;
+      }
+      const midi = TUNING[i] + v;
+      if (v === 0) { marker(svg, c, midi, sx(i), 23, 10, true); return; }
+      if (covered.has(i) && !labels) {
+        // inside a solid barre: show root as a teal dot on the bar
+        if ((midi % 12) === rootPc(c.name)) el('circle', { cx: sx(i), cy: y0 + (v - base + 0.5) * fh, r: 4.8, fill: 'var(--root)', stroke: 'var(--on-ink)', 'stroke-width': 1.2 }, svg);
+        return;
+      }
+      if (covered.has(i) && labels) { marker(svg, c, midi, sx(i), y0 + (v - base + 0.5) * fh, r - 1.2, false); return; }
+      marker(svg, c, midi, sx(i), y0 + (v - base + 0.5) * fh, r, false);
+    });
+    return svg;
+  }
+
+  const formulaHTML = s => s.split(' ').map(t => t === 'R' ? '<strong>R</strong>' : t).join(' · ');
+
+  /* ---------- cards ---------- */
+  const groupsEl = document.getElementById('groups');
+  let cardEls = [];
+  function renderCards() {
+    groupsEl.innerHTML = ''; cardEls = [];
+    GROUPS.forEach(g => {
+      const sec = document.createElement('section');
+      sec.className = 'group'; sec.dataset.group = g.id;
+      sec.innerHTML = `<div class="group-head"><div class="eyebrow">${cname(g.eyebrow)}</div><h2>${cname(g.title)}</h2><p class="muted">${cname(g.text)}</p></div>`;
+      const grid = document.createElement('div'); grid.className = 'cards';
+      g.chords.forEach(c => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'card'; b.dataset.deg = c.deg; b.dataset.id = c.id;
+        const fr = c.f.map(v => v === null ? 'x' : v).join(' ');
+        b.setAttribute('aria-label', `Play ${cname(c.name)}, frets ${fr}, string 6 to 1`);
+        const top = document.createElement('div'); top.className = 'card-top';
+        top.innerHTML = `<span class="card-name">${cname(c.name)}</span><span class="deg ${BORROWED.has(c.deg) ? 'borrowed' : ''} ${c.weird ? 'out' : ''}">${c.weird ? outNotes(c) : c.deg}</span>`;
+        b.appendChild(top);
+        b.appendChild(diagram(c));
+        const info = document.createElement('div'); info.style.display = 'grid'; info.style.gap = '4px';
+        const pitches = c.f.map((v, i) => v === null ? null : pname(TUNING[i] + v)).filter(Boolean).join(' ');
+        info.innerHTML = `<div class="frets">${fr}</div><div class="pitches">${pitches}</div><div class="formula">${formulaHTML(c.formula)}</div>${c.note ? `<div class="note">${cname(c.note)}</div>` : ''}`;
+        b.appendChild(info);
+        b.addEventListener('click', () => play(c.id));
+        grid.appendChild(b); cardEls.push(b);
+      });
+      sec.appendChild(grid);
+      groupsEl.appendChild(sec);
+    });
+    applyFilter();
+  }
+
+  /* ---------- filter chips ---------- */
+  const chipsEl = document.getElementById('chips');
+  function renderChips() {
+    chipsEl.innerHTML = '';
+    const mk = (id, label, chord, borrowed) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip' + (borrowed ? ' borrowed' : ''); b.dataset.deg = id;
+      b.setAttribute('aria-pressed', id === state.filter ? 'true' : 'false');
+      b.innerHTML = chord ? `<b>${label}</b><span>${cname(chord)}</span>` : `<span>${label}</span>`;
+      b.addEventListener('click', () => { state.filter = state.filter === id ? 'all' : id; renderChips(); applyFilter(); });
+      chipsEl.appendChild(b);
+    };
+    mk('all', 'All chords');
+    DEGREES.forEach(d => {
+      if (d.sep) { const s = document.createElement('span'); s.className = 'sep'; s.setAttribute('aria-hidden', 'true'); chipsEl.appendChild(s); return; }
+      mk(d.id, d.label || d.id, d.chord, d.borrowed);
+    });
+  }
+  function applyFilter() {
+    cardEls.forEach(c => { c.hidden = !(state.filter === 'all' || c.dataset.deg === state.filter); });
+    groupsEl.querySelectorAll('section.group').forEach(s => { s.hidden = !s.querySelector('.card:not([hidden])'); });
+  }
+
+  /* ---------- neck ---------- */
+  const neck = document.getElementById('neck');
+  const NUT = 66, END = 786, SY = s => 70 + (s - 1) * 18; // string 1 on top, tab style
+  const FX = n => NUT + (END - NUT) * 2 * (1 - Math.pow(2, -n / 12));
+  const center = n => n === 0 ? NUT - 14 : (FX(n - 1) + FX(n)) / 2;
+  let neckStatic, stringLabels = [], shapeLayer, stopEls = [];
+  function buildNeck() {
+    neckStatic = el('g', {}, neck);
+    [3, 5, 7, 9].forEach(n => el('circle', { cx: center(n), cy: (SY(3) + SY(4)) / 2, r: 4.5, fill: 'var(--faint)' }, neckStatic));
+    el('circle', { cx: center(12), cy: (SY(2) + SY(3)) / 2, r: 4.5, fill: 'var(--faint)' }, neckStatic);
+    el('circle', { cx: center(12), cy: (SY(4) + SY(5)) / 2, r: 4.5, fill: 'var(--faint)' }, neckStatic);
+    for (let n = 1; n <= 12; n++) {
+      el('line', { x1: FX(n), x2: FX(n), y1: SY(1) - 4, y2: SY(6) + 4, stroke: 'var(--line)', 'stroke-width': 1.4 }, neckStatic);
+      txt(neckStatic, center(n), SY(6) + 24, String(n), { 'font-size': 10.5, 'font-family': 'var(--font-data)', fill: 'var(--muted)' });
+    }
+    el('rect', { x: NUT - 3, y: SY(1) - 5, width: 5, height: SY(6) - SY(1) + 10, fill: 'var(--ink)', rx: 1 }, neckStatic);
+    for (let s = 1; s <= 6; s++) {
+      el('line', { x1: NUT, x2: END, y1: SY(s), y2: SY(s), stroke: 'var(--muted)', 'stroke-width': 0.8 + (s - 1) * 0.2 }, neckStatic);
+      stringLabels.push(txt(neckStatic, 8, SY(s) + 4, '', { 'text-anchor': 'start', 'font-size': 11, 'font-family': 'var(--font-data)', fill: 'var(--muted)' }));
+    }
+    shapeLayer = el('g', {}, neck);
+    NECK_STOPS.forEach(st => {
+      const c = byId[st.chord];
+      const g = el('g', { class: 'stop', tabindex: 0, role: 'button' }, neck);
+      let x = center(st.fret), anchor = 'middle';
+      if (st.fret === 0) { x = 6; anchor = 'start'; }
+      if (st.fret === 12) { x = 796; anchor = 'end'; }
+      const y = st.row === 'up' ? 40 : 222;
+      const t = txt(g, x, y, '', { 'text-anchor': anchor });
+      const w = c.name.length * 7.6 + 12;
+      const hx = anchor === 'middle' ? x - w / 2 : anchor === 'start' ? x - 4 : x - w + 4;
+      el('rect', { class: 'hit', x: hx, y: y - 17, width: w, height: 24, rx: 6 }, g);
+      g.addEventListener('click', () => play(c.id));
+      g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); play(c.id); } });
+      g.dataset.id = c.id; g._t = t; g._c = c;
+      stopEls.push(g);
+    });
+  }
+  function renderNeckText() {
+    stringLabels.forEach((t, k) => { t.textContent = pname(TUNING[5 - k]); });
+    stopEls.forEach(g => { g._t.textContent = cname(g._c.name); g.setAttribute('aria-label', `Play ${cname(g._c.name)}`); });
+  }
+  function showOnNeck(id) {
+    if (!NECK_STOPS.some(s => s.chord === id)) return;
+    state.neckChord = id;
+    const c = byId[id];
+    const labels = state.mode !== 'dots';
+    stopEls.forEach(g => g.classList.toggle('on', g.dataset.id === id));
+    while (shapeLayer.firstChild) shapeLayer.removeChild(shapeLayer.firstChild);
+    if (c.barre) {
+      const [bf, from, to] = c.barre;
+      el('rect', { x: center(bf) - 8.5, y: SY(to) - 8.5, width: 17, height: SY(from) - SY(to) + 17, rx: 8.5, fill: 'var(--ink)', 'fill-opacity': labels ? 0.22 : 1 }, shapeLayer);
+    }
+    c.f.forEach((v, i) => {
+      const s = 6 - i, midi = TUNING[i] + v;
+      if (v === null) return;
+      if (v === 0) { marker(shapeLayer, c, midi, NUT - 14, SY(s), 8, true); return; }
+      const inBarre = c.barre && v === c.barre[0] && s <= c.barre[1] && s >= c.barre[2];
+      if (inBarre && !labels) {
+        if ((midi % 12) === rootPc(c.name)) el('circle', { cx: center(v), cy: SY(s), r: 4, fill: 'var(--root)', stroke: 'var(--on-ink)', 'stroke-width': 1.2 }, shapeLayer);
+        return;
+      }
+      marker(shapeLayer, c, midi, center(v), SY(s), 8, false);
+    });
+  }
+
+  /* ---------- option controls ---------- */
+  function syncSeg(id, val) { document.querySelectorAll(`#${id} button`).forEach(b => b.setAttribute('aria-pressed', b.dataset.v === val ? 'true' : 'false')); }
+  document.querySelectorAll('#seg-mode button').forEach(b => b.addEventListener('click', () => { state.mode = b.dataset.v; save(); refresh(); }));
+  document.querySelectorAll('#seg-spell button').forEach(b => b.addEventListener('click', () => { state.spell = b.dataset.v; save(); refresh(); }));
+  function refresh() {
+    syncSeg('seg-mode', state.mode); syncSeg('seg-spell', state.spell);
+    renderStrings(); renderChips(); renderCards(); renderNeckText(); showOnNeck(state.neckChord);
+  }
+
+  /* ---------- audio: Karplus-Strong plucked string ---------- */
+  let ctx = null, master = null, wet = null;
+  const cache = new Map();
+  let voices = [];
+  function initAudio() {
+    if (ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    ctx = new AC();
+    master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
+    const len = Math.floor(ctx.sampleRate * 2.2), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+    const conv = ctx.createConvolver(); conv.buffer = ir;
+    wet = ctx.createGain(); wet.gain.value = 0.22; wet.connect(conv); conv.connect(master);
+  }
+  function pluck(midi) {
+    if (cache.has(midi)) return cache.get(midi);
+    const sr = ctx.sampleRate, f = 440 * Math.pow(2, (midi - 69) / 12);
+    const N = Math.max(2, Math.floor(sr / f - 0.5));
+    const len = Math.floor(sr * 3.4);
+    const buf = ctx.createBuffer(1, len, sr), d = buf.getChannelData(0);
+    const ring = new Float32Array(N);
+    for (let i = 0; i < N; i++) ring[i] = Math.random() * 2 - 1;
+    for (let k = 0; k < 2; k++) for (let i = 0; i < N; i++) ring[i] = (ring[i] + ring[(i + 1) % N]) / 2;
+    const g = Math.pow(0.04, 1 / (f * 3.0));
+    let idx = 0, peak = 0;
+    for (let i = 0; i < len; i++) {
+      const a = ring[idx], b = ring[(idx + 1) % N];
+      d[i] = a; if (Math.abs(a) > peak) peak = Math.abs(a);
+      ring[idx] = g * 0.5 * (a + b); idx = (idx + 1) % N;
+    }
+    const fade = Math.floor(sr * 0.2);
+    for (let i = 0; i < len; i++) { d[i] /= (peak || 1); if (i > len - fade) d[i] *= (len - i) / fade; }
+    const item = { buf, rate: f * (N + 0.5) / sr };
+    cache.set(midi, item);
+    return item;
+  }
+  function strum(frets) {
+    initAudio(); if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume();
+    const now = ctx.currentTime;
+    voices.forEach(v => { try { v.gain.gain.cancelScheduledValues(now); v.gain.gain.setTargetAtTime(0, now, 0.03); v.src.stop(now + 0.3); } catch (e) {} });
+    voices = [];
+    let k = 0;
+    frets.forEach((v, i) => {
+      if (v === null) return;
+      const p = pluck(TUNING[i] + v);
+      const src = ctx.createBufferSource(); src.buffer = p.buf; src.playbackRate.value = p.rate;
+      const gain = ctx.createGain(); gain.gain.value = 0.2;
+      src.connect(gain); gain.connect(master); gain.connect(wet);
+      src.start(now + 0.01 + k * 0.03); k++;
+      voices.push({ src, gain });
+    });
+  }
+  let flashTimer = null;
+  function play(id) {
+    const c = byId[id];
+    strum(c.f);
+    showOnNeck(id);
+    cardEls.forEach(b => b.classList.toggle('playing', b.dataset.id === id));
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => cardEls.forEach(b => b.classList.remove('playing')), 1600);
+  }
+  document.getElementById('play-open').addEventListener('click', () => play('c0'));
+
+  buildNeck();
+  refresh();
+})();
+</script>
+</body>
+</html>
