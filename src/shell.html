@@ -301,6 +301,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     </div>
     <div class="hint" id="prog-msg" role="status"></div>
     <div class="slider-row"><label for="prog-bpm">Tempo</label><input type="range" id="prog-bpm" min="40" max="220" step="1"><output id="prog-bpm-o"></output></div>
+    <label class="toggle"><input type="checkbox" id="bg-play"> Keep playing when I switch tabs or lock my phone</label>
     <div class="field">
       <span class="eyebrow">Strum pattern · one bar of 4/4</span>
       <div class="row tight">
@@ -472,7 +473,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
   const fresh = () => ({
     inst: 'g6', tuning: [39,46,51,54,56,63], pairs: defaultPairs(6), frets: [0,0,0,6,6,0],
     mode: 'notes', spell: 'sharp', maxFret: 15, ghosts: false, play: 'down', spread: 28, bpm: 132, ring: 3.2,
-    tapPlay: true, haze: true, octMix: 110, findQ: '', rootPick: 3, saved: [], myTunings: [],
+    tapPlay: true, bgPlay: true, haze: true, octMix: 110, findQ: '', rootPick: 3, saved: [], myTunings: [],
     prog: freshProg(), progs: []
   });
   const DEFAULT_ORDER = ['comp', 'fuzz', 'drive', 'chorus', 'amp', 'delay', 'reverb'];
@@ -1019,7 +1020,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
 
   function renderProg() {
     const p = P();
-    $('prog-loop').checked = p.loop;
+    $('prog-loop').checked = p.loop; $('bg-play').checked = !!st.bgPlay;
     $('prog-play').textContent = pl ? '■ Stop' : '▶ Play';
     $('prog-play').setAttribute('aria-label', pl ? 'Stop the progression' : 'Play the progression');
     if (progSel >= p.chords.length) progSel = p.chords.length - 1;
@@ -1141,6 +1142,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     progMsg('Started a new progression. Saved ones are still below.'); save(); renderProg();
   });
   $('prog-loop').addEventListener('change', e => { P().loop = e.target.checked; save(); });
+  $('bg-play').addEventListener('change', e => { st.bgPlay = e.target.checked; save(); if (pl) routeOut(st.bgPlay); });
   $('prog-bpm').addEventListener('input', e => { P().bpm = Number(e.target.value); $('prog-bpm-o').textContent = P().bpm + ' bpm'; save(); });
   $('prog-preset').addEventListener('change', e => {
     if (e.target.value === '') return;
@@ -1170,15 +1172,33 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
       if (pl) stopProg();
       hush();
       pl = { chip: 0, ct: 0, bt: 0, t: ctx.currentTime + 0.1, occ: 0, live: [], marks: [], shown: -1, step: -1, endAt: null };
+      routeOut(!!st.bgPlay);
       pl.timer = setInterval(progTick, 25); progTick();
       pl.raf = requestAnimationFrame(progDraw);
+      mediaSession(true);
       renderProg();
     });
   }
+  // Lock-screen / notification controls while a progression plays.
+  function mediaSession(on) {
+    const ms = navigator.mediaSession; if (!ms) return;
+    try {
+      if (on) {
+        ms.metadata = new MediaMetadata({ title: P().name || 'Chord progression', artist: 'Chord Lab', album: P().chords.map(nameOf).join(' – ') });
+        ms.playbackState = 'playing';
+        ms.setActionHandler('pause', () => stopProg());
+        ms.setActionHandler('stop', () => stopProg());
+        ms.setActionHandler('play', () => { if (!pl) startProg(); });
+      } else ms.playbackState = 'paused';
+    } catch (e) {}
+  }
   function progTick() {
-    if (!pl || !ctx || pl.endAt !== null) return;
+    if (!pl || !ctx) return;
+    if (pl.endAt !== null) { if (document.hidden && ctx.currentTime >= pl.endAt) stopProg(true); return; }
     const p = P();
-    while (pl.t < ctx.currentTime + 0.15) {
+    if (document.hidden && pl.marks.length > 64) pl.marks = pl.marks.filter(m => m.t > ctx.currentTime - 1);
+    const ahead = document.hidden ? 4 : 0.15;
+    while (pl.t < ctx.currentTime + ahead) {
       if (!p.chords.length) { stopProg(); return; }
       if (pl.chip >= p.chords.length) pl.chip = 0;
       const c = p.chords[pl.chip], stT = TPB / p.sub, off = pl.bt % stT, beatSec = 60 / p.bpm;
@@ -1242,6 +1262,9 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     clearInterval(pl.timer); cancelAnimationFrame(pl.raf);
     pl = null;
     if (!letRing && ctx) hush();
+    mediaSession(false);
+    // go back to the direct, low-latency output once the last notes have rung out
+    if (viaMedia) { const c = ctx; setTimeout(() => { if (!pl && ctx === c) routeOut(false); }, letRing ? 4000 : 400); }
     renderProg();
   }
 
@@ -1383,13 +1406,15 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
   function rebuildAudio() {
     try { ctx && ctx.close(); } catch (e) {}
     ctx = null; fx = null; voices = []; cache.clear(); curveCache.clear();
+    lim = null; mediaDest = null; viaMedia = false; if (mediaEl) { try { mediaEl.pause(); mediaEl.srcObject = null; } catch (e) {} }
     initAudio();
   }
   // Call from inside a tap. Runs fn once sound can actually play.
   function withAudio(fn) {
     claimPlaybackSession();
     // after leaving the app iOS can report 'running' yet stay silent, so always start fresh on the first tap back
-    if (ctx && (ctx.state === 'closed' || wentAway)) rebuildAudio();
+    // (unless a progression kept playing in the background and is still going: then leave it alone)
+    if (ctx && (ctx.state === 'closed' || (wentAway && !(pl && ctx.state === 'running')))) rebuildAudio();
     wentAway = false;
     if (!initAudio()) return;
     if (ctx.state === 'running') { fn(); return; }
@@ -1399,9 +1424,39 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     setTimeout(() => { if (done) return; if (ctx.state !== 'running') { rebuildAudio(); try { ctx.resume(); } catch (e) {} } go(); }, 300);
   }
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { wentAway = true; if (silentEl) silentEl.pause(); if (pl) stopProg(); }
+    if (document.hidden) {
+      if (pl && st.bgPlay) { progTick(); return; }   // keep going: book the next few seconds right away
+      wentAway = true; if (silentEl) silentEl.pause(); if (pl) stopProg();
+    } else if (pl) {
+      // back in the app with a progression still going: if the phone paused the audio, try to pick it up again
+      if (ctx && ctx.state !== 'running') { try { ctx.resume(); } catch (e) {} }
+      if (viaMedia && mediaEl && mediaEl.paused) mediaEl.play().catch(() => {});
+      cancelAnimationFrame(pl.raf); pl.raf = requestAnimationFrame(progDraw);
+    }
   });
   window.addEventListener('pageshow', e => { if (e.persisted) wentAway = true; });
+  // Background playback: browsers (iPhone especially) silence plain Web Audio when you leave the page, but keep
+  // real media playing. So while a progression plays with "keep playing" on, the sound is sent through an
+  // ordinary <audio> element instead of straight to the speakers. Outside that, the direct path is used
+  // because it reacts faster when you tap notes.
+  let lim = null, mediaDest = null, mediaEl = null, viaMedia = false;
+  function routeOut(useMedia) {
+    if (!ctx || !lim) return;
+    if (useMedia && !ctx.createMediaStreamDestination) useMedia = false;
+    if (useMedia === viaMedia) { if (useMedia && mediaEl.paused) mediaEl.play().catch(() => {}); return; }
+    try { lim.disconnect(); } catch (e) {}
+    if (useMedia) {
+      if (!mediaDest) mediaDest = ctx.createMediaStreamDestination();
+      if (!mediaEl) { mediaEl = new Audio(); mediaEl.setAttribute('playsinline', ''); mediaEl.setAttribute('x-webkit-airplay', 'deny'); }
+      mediaEl.srcObject = mediaDest.stream;
+      lim.connect(mediaDest); viaMedia = true;
+      const c = ctx;
+      mediaEl.play().catch(() => { if (ctx === c && viaMedia) { try { lim.disconnect(); } catch (e) {} lim.connect(ctx.destination); viaMedia = false; } });
+    } else {
+      lim.connect(ctx.destination); viaMedia = false;
+      if (mediaEl) { try { mediaEl.pause(); } catch (e) {} }
+    }
+  }
   function initAudio() {
     if (ctx) return true;
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -1409,7 +1464,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     ctx = new AC();
     master = ctx.createGain(); master.gain.value = 0.85;
     // safety limiter at the very end, so a cranked fuzz or long delay can't blast or crackle
-    const lim = ctx.createDynamicsCompressor();
+    lim = ctx.createDynamicsCompressor();
     lim.threshold.value = -4; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.12;
     master.connect(lim); lim.connect(ctx.destination);
     buildFx(); wireFx(); applyFx();

@@ -13,6 +13,10 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   pedals that are on in `st.fx.order` (user-reorderable; rigs reset it to the default comp, fuzz, drive, chorus, amp+cab, delay, reverb), `applyFx()` maps knobs to node params,
   and a limiter sits before the speakers. Electric mode = longer sustain + pickup-position comb in `pluck()`. Keep rig levels
   close to the acoustic default (measured RMS ≈ 0.15–0.25) so switching rigs doesn't jump in volume.
+  Background playback (`st.bgPlay`): while a progression plays, the limiter output goes to a MediaStreamDestination played
+  by an <audio> element (`routeOut`) so iOS/Chrome keep it alive when hidden; the scheduler looks 4 s ahead while hidden;
+  Media Session gives lock-screen controls; the direct output is restored after stop. Don't rebuild the AudioContext on
+  return while a background progression is still running.
 - `dsharp-chart.html` — chord chart for his D# A# D# F# G# D# tuning (MIDI 39 46 51 54 56 63).
 - Live at https://irc-finds.github.io/chord-lab/ (GitHub Pages, served from the `main` branch root).
   Pushing to `main` updates the site within a minute or two.
