@@ -8,9 +8,12 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   shapes; strum or arpeggio playback with a Karplus-Strong plucked-string synth; 6-, 7- and 12-string guitar and 4- and 5-string bass;
   named saved tunings and voicings (stored in the browser's localStorage under the key `chord-lab`);
   progressions (`st.prog` working copy, `st.progs` saved): chords with lengths in beats, a one-bar strum pattern
-  (`sub` steps per beat, `pat` of D/U/X/-), tempo and loop, played by a look-ahead scheduler on the audio clock.
+  (`sub` steps per count, `pat` of D/U/P/X/- where P = palm mute), `meter` (2/4…7/4, 5/8…12/8; groups in `METERS`, tempo counts
+  the denominator note), tempo and loop, played by a look-ahead scheduler on the audio clock. Chord length is `beats` (counts)
+  or `bars` (follows the meter).
   Sound: `st.fx` = { mode: acoustic|electric, rig, p: per-pedal settings 0..1 }. Voices feed `fx.input`; `wireFx()` chains the
-  pedals that are on in `st.fx.order` (user-reorderable; rigs reset it to the default comp, fuzz, drive, chorus, amp+cab, delay, reverb), `applyFx()` maps knobs to node params,
+  pedals that are on in `st.fx.order` (user-reorderable; rigs reset it to the default comp, gate, fuzz, drive, dist, chorus, amp+cab,
+  delay, reverb; the noise gate is an AudioWorklet loaded from a Blob, so it only works over http(s), not file://), `applyFx()` maps knobs to node params,
   and a limiter sits before the speakers. Electric mode = longer sustain + pickup-position comb in `pluck()`. Keep rig levels
   close to the acoustic default (measured RMS ≈ 0.15–0.25) so switching rigs doesn't jump in volume.
   Background playback (`st.bgPlay`): while a progression plays, the limiter output goes to a MediaStreamDestination played

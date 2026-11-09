@@ -106,19 +106,22 @@ h2 { font-size: 17px; }
 .chip.playing { background: var(--root); border-color: var(--root); color: var(--on-root); }
 .chip.playing select, .chip.playing .x { color: var(--on-root); }
 .chip select option { color: var(--ink); background: var(--surface); }
-.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.beat { display: grid; grid-template-columns: repeat(var(--sub), minmax(0, 1fr)); gap: 3px; }
+.steps { display: flex; flex-wrap: wrap; gap: 8px; }
+.beat { flex: var(--n) 1 calc(var(--n) * 30px); display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 3px; min-width: 0; }
 .step { border: 1px solid var(--line); background: var(--bg); border-radius: 7px; height: 44px; padding: 3px 0 2px; display: grid; grid-template-rows: 1fr auto; place-items: center; line-height: 1; touch-action: manipulation; }
 .step .g { font-size: 18px; font-weight: 700; }
 .step .c { font-family: var(--font-data); font-size: 9.5px; color: var(--muted); }
 .step.D, .step.U { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .step.D .c, .step.U .c { color: inherit; opacity: 0.6; }
 .step.X { color: var(--accent); border-color: var(--accent); }
+.step.P { background: var(--muted); color: var(--bg); border-color: var(--muted); }
+.step.P .g { font-size: 12.5px; letter-spacing: 0.02em; }
+.step.P .c { color: inherit; opacity: 0.7; }
 .step.R .g { color: var(--muted); font-weight: 400; }
 .step.hit { background: var(--root); border-color: var(--root); color: var(--on-root); }
 .step.hit .c { color: inherit; }
 .tight { gap: 6px; }
-@media (max-width: 520px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .beat { flex-basis: calc(var(--n) * 36px); } }
 
 /* chord finder */
 .find-read { font-family: var(--font-data); font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: baseline; }
@@ -303,14 +306,15 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     <div class="slider-row"><label for="prog-bpm">Tempo</label><input type="range" id="prog-bpm" min="40" max="220" step="1"><output id="prog-bpm-o"></output></div>
     <label class="toggle"><input type="checkbox" id="bg-play"> Keep playing when I switch tabs or lock my phone</label>
     <div class="field">
-      <span class="eyebrow">Strum pattern · one bar of 4/4</span>
+      <span class="eyebrow" id="pat-title">Strum pattern · one bar</span>
       <div class="row tight">
+        <label class="toggle"><span class="eyebrow">Time</span><select id="prog-meter" aria-label="Time signature"></select></label>
         <select id="prog-preset" aria-label="Strum pattern preset"></select>
         <div class="seg" id="seg-sub" role="group" aria-label="Note value"><button type="button" data-v="1">Quarters</button><button type="button" data-v="2">8ths</button><button type="button" data-v="3">Triplets</button><button type="button" data-v="4">16ths</button></div>
       </div>
     </div>
     <div class="steps" id="prog-steps"></div>
-    <div class="hint">Tap a box to change it: <b>↓</b> downstroke, <b>↑</b> upstroke, <b>✕</b> muted chuck, <b>·</b> rest (the chord keeps ringing). Tap a chord above to select it and see it on the neck.</div>
+    <div class="hint">Tap a box to change it: <b>↓</b> downstroke, <b>↑</b> upstroke, <b>PM</b> palm-muted chug, <b>✕</b> muted chuck, <b>·</b> rest (the chord keeps ringing). Tap a chord above to select it and see it on the neck.</div>
     <div class="field">
       <label class="eyebrow" for="prog-name">Save this progression</label>
       <div class="text-in">
@@ -476,7 +480,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     tapPlay: true, bgPlay: true, haze: true, octMix: 110, findQ: '', rootPick: 3, saved: [], myTunings: [],
     prog: freshProg(), progs: []
   });
-  const DEFAULT_ORDER = ['comp', 'fuzz', 'drive', 'chorus', 'amp', 'delay', 'reverb'];
+  const DEFAULT_ORDER = ['comp', 'gate', 'fuzz', 'drive', 'dist', 'chorus', 'amp', 'delay', 'reverb'];
   function freshFx(reverbOn) {
     return { mode: 'acoustic', rig: 'acoustic', order: DEFAULT_ORDER.slice(), p: {
       comp: { on: false, sustain: 0.5, level: 0.5 },
@@ -485,10 +489,28 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
       chorus: { on: false, rate: 0.35, depth: 0.5, mix: 0.45 },
       amp: { on: false, gain: 0.25, bass: 0.5, mid: 0.5, treble: 0.55, volume: 0.6 },
       delay: { on: false, time: 0.3, feedback: 0.35, mix: 0.3 },
-      reverb: { on: reverbOn !== false, size: 0.22, mix: 0.22 } } };
+      reverb: { on: reverbOn !== false, size: 0.22, mix: 0.22 },
+      gate: { on: false, threshold: 0.3, release: 0.25 },
+      dist: { on: false, gain: 0.65, tight: 0.55, low: 0.55, mid: 0.45, high: 0.55, level: 0.5 } } };
   }
-  function freshProg() { return { name: '', chords: [], sub: 2, pat: 'D-DU-UDU', bpm: 90, loop: true }; }
-  const okProg = p => p && Array.isArray(p.chords) && [1, 2, 3, 4].includes(p.sub) && typeof p.pat === 'string' && p.pat.length === 4 * p.sub
+  function freshProg() { return { name: '', chords: [], sub: 2, pat: 'D-DU-UDU', bpm: 90, loop: true, meter: '4/4' }; }
+  // time signatures: how the counts in a bar are grouped (x/4: every beat is its own group; x/8: eighth notes in 2s and 3s)
+  const METERS = { '2/4': [1, 1], '3/4': [1, 1, 1], '4/4': [1, 1, 1, 1], '5/4': [1, 1, 1, 1, 1], '6/4': [1, 1, 1, 1, 1, 1], '7/4': [1, 1, 1, 1, 1, 1, 1],
+    '5/8': [3, 2], '6/8': [3, 3], '7/8': [2, 2, 3], '9/8': [3, 3, 3], '12/8': [3, 3, 3, 3] };
+  const countsOf = m => (METERS[m] || METERS['4/4']).reduce((a, b) => a + b, 0);
+  // chord length: a number of counts (c.beats) or of whole bars (c.bars), so "1 bar" follows the time signature
+  function normChord(c) {
+    if (c.bars === 1 || c.bars === 2 || c.bars === 4) { delete c.beats; return c; }
+    if ([4, 8, 16].includes(c.beats)) { c.bars = c.beats / 4; delete c.beats; }        // saved before time signatures existed (4/4)
+    else if (c.beats !== 1 && c.beats !== 2) { c.bars = 1; delete c.beats; }
+    return c;
+  }
+  function normProg(p) {
+    if (p && !METERS[p.meter]) p.meter = '4/4';
+    if (p && Array.isArray(p.chords)) p.chords.forEach(normChord);
+    return p;
+  }
+  const okProg = p => p && Array.isArray(p.chords) && [1, 2, 3, 4].includes(p.sub) && typeof p.pat === 'string' && p.pat.length === countsOf(normProg(p).meter) * p.sub
     && p.chords.every(c => INSTRUMENTS[c.inst] && Array.isArray(c.frets) && Array.isArray(c.tuning) && c.frets.length === c.tuning.length);
   let st = fresh();
   try {
@@ -498,8 +520,13 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
   if (!okProg(st.prog)) st.prog = freshProg();
   if (!st.fx || typeof st.fx.p !== 'object') st.fx = freshFx(st.haze);
   else { const d = freshFx(); for (const k in d.p) st.fx.p[k] = Object.assign(d.p[k], st.fx.p[k] || {}); if (st.fx.mode !== 'electric') st.fx.mode = 'acoustic'; }
-  if (!Array.isArray(st.fx.order) || st.fx.order.length !== DEFAULT_ORDER.length || !DEFAULT_ORDER.every(k => st.fx.order.includes(k))) st.fx.order = DEFAULT_ORDER.slice();
+  {  // keep a saved pedal order, slotting in any newer pedals at their usual place
+    const o = (Array.isArray(st.fx.order) ? st.fx.order : []).filter((k, i, a) => DEFAULT_ORDER.includes(k) && a.indexOf(k) === i);
+    DEFAULT_ORDER.forEach((k, i) => { if (o.includes(k)) return; const prev = DEFAULT_ORDER.slice(0, i).reverse().find(x => o.includes(x)); o.splice(prev ? o.indexOf(prev) + 1 : 0, 0, k); });
+    st.fx.order = o;
+  }
   st.progs = Array.isArray(st.progs) ? st.progs.filter(okProg) : [];
+  normProg(st.prog); st.progs.forEach(normProg);
   const save = () => { try { localStorage.setItem('chord-lab', JSON.stringify(st)); } catch (e) {} };
 
   const $ = id => document.getElementById(id);
@@ -973,11 +1000,27 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     ['Triplet gallop', 3, 'DUDUDUDUDUDU'],
     ['Straight 16ths', 4, 'DUDUDUDUDUDUDUDU'],
     ['16ths with chucks on 2 and 4', 4, 'DUDUXUDUDUDUXUDU'],
-    ['16th groove', 4, 'D-DUX-DU-UDUX-DU']
+    ['16th groove', 4, 'D-DUX-DU-UDUX-DU'],
+    ['Djent chugs (3+3+3+3+4)', 4, 'PP-PP-PP-PP-D---'],
+    ['Metal gallop', 4, 'P-PPP-PPP-PPP-PP'],
+    ['Chug, then let it ring', 4, 'PPPPD---PPPPD---'],
+    ['Big open strums (3+3+2)', 2, 'D--D--D-'],
+    ['Waltz  ↓ ↓↑ ↓↑', 2, 'D-DUDU', '3/4'],
+    ['3/4 one strum per beat', 1, 'DDD', '3/4'],
+    ['6/8 ballad  ↓ ↑ ↑', 1, 'DUUDUU', '6/8'],
+    ['6/8 heavy sway', 1, 'D--D-U', '6/8'],
+    ['12/8 slow blues / doom', 1, 'DUUDUUDUUDUU', '12/8'],
+    ['5/4 (3+2)', 2, 'D-DUD-D-DU', '5/4'],
+    ['7/8 (2+2+3)', 1, 'DUDUDUU', '7/8'],
+    ['7/8 chugs', 2, 'P-P-P-P-PP-D--', '7/8']
   ];
-  const LENGTHS = [[1, '1 beat'], [2, '2 beats'], [4, '1 bar'], [8, '2 bars'], [16, '4 bars']];
-  const GLYPH = { D: '↓', U: '↑', X: '✕', '-': '·' };
-  const SAY = { D: 'downstroke', U: 'upstroke', X: 'muted chuck', '-': 'rest' };
+  const lenKey = c => c.bars ? 'b' + c.bars : 'c' + c.beats;
+  const lenSet = (c, k) => { if (k[0] === 'b') { c.bars = Number(k.slice(1)); delete c.beats; } else { c.beats = Number(k.slice(1)); delete c.bars; } };
+  const lenCounts = c => c.bars ? c.bars * countsOf(P().meter) : c.beats;
+  const lengths = () => { const e = P().meter.endsWith('/8'); return [['c1', e ? '1 eighth' : '1 beat'], ['c2', e ? '2 eighths' : '2 beats'], ['b1', '1 bar'], ['b2', '2 bars'], ['b4', '4 bars']]; };
+  const patMeter = x => x[3] || '4/4';
+  const GLYPH = { D: '↓', U: '↑', P: 'PM', X: '✕', '-': '·' };
+  const SAY = { D: 'downstroke', U: 'upstroke', P: 'palm-muted downstroke', X: 'muted chuck', '-': 'rest' };
   const COUNTS = { 1: [''], 2: ['', '&'], 3: ['', '&', 'a'], 4: ['', 'e', '&', 'a'] };
   const TPB = 12;               // timing ticks per beat (divisible by 1, 2, 3 and 4)
   let pl = null, progSel = -1;  // pl = what's playing right now; progSel = selected chip
@@ -997,8 +1040,9 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     const pick = (c.rootPick !== null && c.rootPick !== undefined && (cs.find(x => x.root === c.rootPick && !x.upper) || cs.find(x => x.root === c.rootPick))) || cs[0];
     return pick ? fmt(pick) : '?';
   }
-  function chordNow(beats) {
-    return { inst: st.inst, tuning: st.tuning.slice(), pairs: st.pairs.slice(), frets: st.frets.slice(), rootPick: current ? current.root : null, beats };
+  function chordNow(like) {
+    const c = { inst: st.inst, tuning: st.tuning.slice(), pairs: st.pairs.slice(), frets: st.frets.slice(), rootPick: current ? current.root : null };
+    lenSet(c, like ? lenKey(like) : 'b1'); return c;
   }
   // 6- and 12-string share the same strings and frets, so a chord recorded on one plays on whichever of the
   // two is selected now. Other instruments have different string counts, so those chords keep their own.
@@ -1038,10 +1082,9 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
         putOnNeck(c); playChord();
       });
       const sel = document.createElement('select'); sel.setAttribute('aria-label', 'Length of ' + b.textContent);
-      LENGTHS.forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.appendChild(o); });
-      if (!LENGTHS.some(([v]) => v === c.beats)) c.beats = 4;
-      sel.value = String(c.beats);
-      sel.addEventListener('change', () => { c.beats = Number(sel.value); save(); });
+      lengths().forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.appendChild(o); });
+      normChord(c); sel.value = lenKey(c);
+      sel.addEventListener('change', () => { lenSet(c, sel.value); save(); });
       const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove ' + b.textContent);
       x.addEventListener('click', () => { p.chords.splice(i, 1); if (progSel > i || progSel === p.chords.length) progSel--; if (!p.chords.length && pl) stopProg(); save(); renderProg(); });
       chip.append(b, sel, x); box.appendChild(chip);
@@ -1054,7 +1097,10 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     const pre = $('prog-preset'); pre.innerHTML = '';
     const cu = document.createElement('option'); cu.value = ''; cu.textContent = 'Custom pattern'; pre.appendChild(cu);
     PATTERNS.forEach(([name], i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = name; pre.appendChild(o); });
-    const mi = PATTERNS.findIndex(([, s, pat]) => s === p.sub && pat === p.pat);
+    const mi = PATTERNS.findIndex(x => x[1] === p.sub && x[2] === p.pat && patMeter(x) === p.meter);
+    const mt = $('prog-meter'); if (!mt.options.length) Object.keys(METERS).forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = k; mt.appendChild(o); });
+    mt.value = p.meter;
+    $('pat-title').textContent = 'Strum pattern · one bar of ' + p.meter + (p.meter.endsWith('/8') ? ' (tempo counts eighth notes)' : '');
     pre.value = mi >= 0 ? String(mi) : '';
     syncSeg('seg-sub', p.sub);
     renderSteps();
@@ -1062,9 +1108,10 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
   }
   function renderSteps() {
     const p = P(), box = $('prog-steps'); box.innerHTML = '';
-    for (let bt = 0; bt < 4; bt++) {
-      const beat = document.createElement('div'); beat.className = 'beat'; beat.style.setProperty('--sub', p.sub);
-      for (let k = 0; k < p.sub; k++) {
+    let bt = 0;
+    for (const size of METERS[p.meter]) {
+      const beat = document.createElement('div'); beat.className = 'beat'; beat.style.setProperty('--n', size * p.sub);
+      for (let g = 0; g < size; g++, bt++) for (let k = 0; k < p.sub; k++) {
         const i = bt * p.sub + k, ch = p.pat[i] || '-', count = COUNTS[p.sub][k] || String(bt + 1);
         const b = document.createElement('button'); b.type = 'button';
         b.className = 'step ' + (ch === '-' ? 'R' : ch) + (pl && pl.step === i ? ' hit' : '');
@@ -1078,6 +1125,12 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
       box.appendChild(beat);
     }
   }
+  function setMeter(m) {
+    const p = P(); if (!METERS[m] || m === p.meter) return;
+    const len = countsOf(m) * p.sub; let out = '';
+    for (let j = 0; j < len; j++) out += p.pat[j % p.pat.length] || '-';   // keep the pattern, trimmed or repeated to fit the new bar
+    p.pat = out; p.meter = m;
+  }
   function markStep() {
     document.querySelectorAll('#prog-steps .step').forEach(b => b.classList.toggle('hit', !!pl && Number(b.dataset.i) === pl.step));
   }
@@ -1085,7 +1138,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     const p = P();
     // on a real guitar the hand swings down on the beat and up in between, so offer that direction first
     const nat = p.sub === 1 ? 'D' : (i % 2 === 0 ? 'D' : 'U'), other = nat === 'D' ? 'U' : 'D';
-    const order = ['-', nat, other, 'X'];
+    const order = ['-', nat, other, 'P', 'X'];
     const next = order[(order.indexOf(p.pat[i]) + 1) % order.length];
     p.pat = p.pat.slice(0, i) + next + p.pat.slice(i + 1);
     save(); renderProg();
@@ -1093,7 +1146,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
   function setSub(n) {
     const p = P(); if (n === p.sub) return;
     let out = '';
-    for (let j = 0; j < 4 * n; j++) out += (j * p.sub) % n === 0 ? p.pat[(j * p.sub) / n] : '-';
+    for (let j = 0; j < countsOf(p.meter) * n; j++) out += (j * p.sub) % n === 0 ? p.pat[(j * p.sub) / n] : '-';
     p.pat = out; p.sub = n;
   }
   function renderProgs() {
@@ -1104,8 +1157,8 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
       const load = document.createElement('button'); load.type = 'button'; load.className = 'load';
       load.innerHTML = '<span class="nm"></span><span class="meta"></span>';
       load.querySelector('.nm').textContent = q.name;
-      const pre = PATTERNS.find(([, s, pat]) => s === q.sub && pat === q.pat);
-      load.querySelector('.meta').textContent = q.chords.map(nameOf).join(' – ') + ' · ' + q.bpm + ' bpm · ' + (pre ? pre[0].replace(/\s+[↓↑].*$/, '') : 'custom strum');
+      const pre = PATTERNS.find(x => x[1] === q.sub && x[2] === q.pat && patMeter(x) === (q.meter || '4/4'));
+      load.querySelector('.meta').textContent = q.chords.map(nameOf).join(' – ') + ' · ' + q.bpm + ' bpm · ' + (q.meter || '4/4') + ' · ' + (pre ? pre[0].replace(/\s+[↓↑].*$/, '') : 'custom strum');
       load.addEventListener('click', () => {
         if (pl) stopProg();
         st.prog = clone(q); progSel = -1; $('prog-name').value = q.name;
@@ -1121,16 +1174,16 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
   $('prog-add').addEventListener('click', () => {
     const p = P();
     if (!sounding().some(m => m !== null)) { progMsg('The neck is empty. Put a chord on it first.'); return; }
-    const prevBeats = p.chords.length ? p.chords[progSel >= 0 ? progSel : p.chords.length - 1].beats : 4;
+    const prev = p.chords.length ? p.chords[progSel >= 0 ? progSel : p.chords.length - 1] : null;
     const at = progSel >= 0 ? progSel + 1 : p.chords.length;
-    p.chords.splice(at, 0, chordNow(prevBeats));
+    p.chords.splice(at, 0, chordNow(prev));
     progSel = at; progMsg(`Added ${nameOf(p.chords[at])}.`);
     save(); renderProg();
   });
   $('prog-replace').addEventListener('click', () => {
     const p = P(); if (progSel < 0) return;
     if (!sounding().some(m => m !== null)) { progMsg('The neck is empty. Put a chord on it first.'); return; }
-    p.chords[progSel] = chordNow(p.chords[progSel].beats);
+    p.chords[progSel] = chordNow(p.chords[progSel]);
     progMsg(`Replaced with ${nameOf(p.chords[progSel])}.`); save(); renderProg();
   });
   const move = d => { const p = P(), j = progSel + d; if (progSel < 0 || j < 0 || j >= p.chords.length) return; [p.chords[progSel], p.chords[j]] = [p.chords[j], p.chords[progSel]]; progSel = j; save(); renderProg(); };
@@ -1146,7 +1199,9 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
   $('prog-bpm').addEventListener('input', e => { P().bpm = Number(e.target.value); $('prog-bpm-o').textContent = P().bpm + ' bpm'; save(); });
   $('prog-preset').addEventListener('change', e => {
     if (e.target.value === '') return;
-    const [, s, pat] = PATTERNS[+e.target.value]; P().sub = s; P().pat = pat; save(); renderProg();
+    const x = PATTERNS[+e.target.value]; P().sub = x[1]; P().pat = x[2]; P().meter = patMeter(x); save(); renderProg();
+  });
+  $('prog-meter').addEventListener('change', e => { setMeter(e.target.value); save(); renderProg();
   });
   document.querySelectorAll('#seg-sub button').forEach(b => b.addEventListener('click', () => { setSub(Number(b.dataset.v)); save(); renderProg(); }));
   function saveProg() {
@@ -1209,9 +1264,9 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
       }
       const adv = stT - off;
       pl.t += adv / TPB * beatSec;
-      pl.bt = (pl.bt + adv) % (4 * TPB);
+      pl.bt = (pl.bt + adv) % (countsOf(p.meter) * TPB);
       pl.ct += adv;
-      if (pl.ct >= c.beats * TPB) {
+      if (pl.ct >= lenCounts(c) * TPB) {
         pl.ct = 0; pl.chip++; pl.occ++;
         if (pl.chip >= p.chords.length) {
           if (p.loop) { pl.chip = 0; pl.bt = 0; }   // each time round starts on beat 1 of the pattern
@@ -1220,6 +1275,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
       }
     }
   }
+  function groupStart(cnt) { let a = 0; for (const g of METERS[P().meter]) { if (a === cnt) return true; a += g; } return false; }
   function strum(c, ch, t, stepSec, i, sub) {
     const idx = c.frets.map((f, s) => f === null ? null : s).filter(s => s !== null);
     if (!idx.length) return;
@@ -1228,19 +1284,24 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     let order, gain;
     if (ch === 'U') { order = idx.slice(-Math.min(idx.length, 4)).reverse(); gain = base * 0.72; }   // upstrokes mostly catch the thin strings
     else if (ch === 'X') { order = idx; gain = base * 0.8; }
-    else { order = idx; gain = base * (i === 0 ? 1.12 : i % sub === 0 ? 1 : 0.86); }                 // accent the beat
+    // accents: strongest on 1, then the start of each group (each beat in x/4; each 2 or 3 in x/8), then other counts
+    const cnt = Math.floor(i / sub), onCount = i % sub === 0, grp = groupStart(cnt);
+    const acc = i === 0 ? 1.12 : onCount && grp ? 1 : onCount ? 0.93 : 0.86;
+    if (ch === 'P') { order = idx; gain = base * (acc > 0.9 ? 1.05 : 0.95); }
+    else if (ch !== 'U' && ch !== 'X') { order = idx; gain = base * acc; }
     // damp what's ringing: strings from the previous chord, strings being struck again, and everything on a chuck
     const hit = new Set(order);
     pl.live = pl.live.filter(v => {
       if (v.end <= t) return false;
-      if (ch === 'X' || v.occ !== pl.occ || hit.has(v.s)) { fadeAt(v, t); return false; }
+      if (ch === 'X' || ch === 'P' || v.occ !== pl.occ || hit.has(v.s)) { fadeAt(v, t); return false; }
       return true;
     });
     const per = Math.min(st.spread, stepSec * 1000 * 0.55 / order.length) / 1000;
     order.forEach((s, k) => {
       const m = c.tuning[s] + c.frets[s], tt = t + k * per;
-      const vs = course ? courseVoices(m, pairs[s] === 'oct', tt, gain, ch === 'U') : [voice(m, tt, gain)];
+      const vs = course ? courseVoices(m, pairs[s] === 'oct', tt, gain, ch === 'U') : [voice(m, tt, gain, 1, 0, ch === 'P' ? 5 : undefined)];
       if (ch === 'X') vs.forEach(v => fadeAt(v, tt + 0.03));
+      else if (ch === 'P') vs.forEach(v => palmAt(v, tt));   // the picking hand rests on the strings: a short, thick thud
       else vs.forEach(v => { v.s = s; v.occ = pl.occ; pl.live.push(v); });
     });
   }
@@ -1274,7 +1335,9 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
   const PEDALS = [
     { id: 'comp', name: 'Compressor', sub: 'evens out, adds sustain', color: '#3f9a6e', knobs: [['sustain', 'Sustain', pct], ['level', 'Level', pct]] },
     { id: 'fuzz', name: 'Fuzz', sub: 'gated and sputtery', color: '#d0562c', knobs: [['gain', 'Gain', pct], ['gate', 'Gate', pct], ['stab', 'Stab', pct], ['tone', 'Tone', pct], ['level', 'Level', pct]] },
+    { id: 'gate', name: 'Noise gate', sub: 'silence between chugs', color: '#717a8c', knobs: [['threshold', 'Threshold', pct], ['release', 'Release', v => Math.round(20 + 480 * v) + ' ms']] },
     { id: 'drive', name: 'Overdrive', sub: 'warm mid push', color: '#86b23a', knobs: [['drive', 'Drive', pct], ['tone', 'Tone', pct], ['level', 'Level', pct]] },
+    { id: 'dist', name: 'Distortion', sub: 'high-gain metal', color: '#c0333f', knobs: [['gain', 'Gain', pct], ['tight', 'Tight', v => Math.round(40 * Math.pow(10, v)) + ' Hz'], ['low', 'Low', dbTxt], ['mid', 'Mid', dbTxt], ['high', 'High', dbTxt], ['level', 'Level', pct]] },
     { id: 'chorus', name: 'Chorus', sub: 'shimmer and width', color: '#3a86cc', knobs: [['rate', 'Rate', v => (0.15 * Math.pow(40, v)).toFixed(1) + ' Hz'], ['depth', 'Depth', pct], ['mix', 'Mix', pct]] },
     { id: 'amp', name: 'Amp + cabinet', sub: 'preamp, tone stack, 4×12 cab', color: '#a0784e', knobs: [['gain', 'Gain', pct], ['bass', 'Bass', dbTxt], ['mid', 'Mid', dbTxt], ['treble', 'Treble', dbTxt], ['volume', 'Volume', pct]] },
     { id: 'delay', name: 'Delay', sub: 'echoes', color: '#7a62c8', knobs: [['time', 'Time', v => Math.round((0.06 + 1.14 * v) * 1000) + ' ms'], ['feedback', 'Repeats', pct], ['mix', 'Mix', pct]] },
@@ -1287,6 +1350,9 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     ['crunch', 'Crunch', 'electric', { amp: { on: true, gain: 0.6, bass: 0.55, mid: 0.6, treble: 0.55, volume: 0.55 }, reverb: { on: true, size: 0.18, mix: 0.15 } }],
     ['lead', 'Lead', 'electric', { comp: { on: true, sustain: 0.5, level: 0.5 }, drive: { on: true, drive: 0.5, tone: 0.55, level: 0.6 }, amp: { on: true, gain: 0.55, bass: 0.5, mid: 0.65, treble: 0.55, volume: 0.45 }, delay: { on: true, time: 0.32, feedback: 0.3, mix: 0.22 }, reverb: { on: true, size: 0.3, mix: 0.2 } }],
     ['sputter', 'Sputtery fuzz', 'electric', { fuzz: { on: true, gain: 0.85, gate: 0.6, stab: 0.3, tone: 0.5, level: 0.5 }, amp: { on: true, gain: 0.2, bass: 0.55, mid: 0.5, treble: 0.5, volume: 0.5 }, reverb: { on: true, size: 0.15, mix: 0.12 } }],
+    ['djent', 'Djent (tight and gated)', 'electric', { gate: { on: true, threshold: 0.4, release: 0.15 }, drive: { on: true, drive: 0.05, tone: 0.65, level: 0.85 }, dist: { on: true, gain: 0.72, tight: 0.75, low: 0.55, mid: 0.6, high: 0.55, level: 0.62 }, amp: { on: true, gain: 0.1, bass: 0.5, mid: 0.55, treble: 0.55, volume: 0.6 }, reverb: { on: true, size: 0.12, mix: 0.08 } }],
+    ['openmetal', 'Open-tuning metal (thick and wide)', 'electric', { gate: { on: true, threshold: 0.2, release: 0.45 }, dist: { on: true, gain: 0.8, tight: 0.3, low: 0.7, mid: 0.42, high: 0.45, level: 0.5 }, chorus: { on: true, rate: 0.2, depth: 0.3, mix: 0.25 }, amp: { on: true, gain: 0.2, bass: 0.6, mid: 0.45, treble: 0.45, volume: 0.6 }, delay: { on: true, time: 0.35, feedback: 0.25, mix: 0.12 }, reverb: { on: true, size: 0.55, mix: 0.3 } }],
+    ['classicmetal', 'Classic metal (scooped mids)', 'electric', { gate: { on: true, threshold: 0.3, release: 0.2 }, dist: { on: true, gain: 0.65, tight: 0.5, low: 0.65, mid: 0.25, high: 0.65, level: 0.5 }, amp: { on: true, gain: 0.15, bass: 0.55, mid: 0.45, treble: 0.55, volume: 0.6 }, reverb: { on: true, size: 0.15, mix: 0.12 } }],
     ['wall', 'Wall of fuzz (shoegaze)', 'electric', { fuzz: { on: true, gain: 0.9, gate: 0.08, stab: 0.5, tone: 0.4, level: 0.5 }, chorus: { on: true, rate: 0.3, depth: 0.6, mix: 0.5 }, amp: { on: true, gain: 0.3, bass: 0.55, mid: 0.4, treble: 0.4, volume: 0.6 }, delay: { on: true, time: 0.35, feedback: 0.5, mix: 0.3 }, reverb: { on: true, size: 0.85, mix: 0.6 } }]
   ];
   function soundChanged() { st.fx.rig = null; $('rig').value = ''; save(); }
@@ -1475,6 +1541,36 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
      guitar → (electric: pickup) → compressor → fuzz → overdrive → chorus → amp + cab → delay → reverb → master.
      Every pedal has its own in/out node; a pedal that's off is simply skipped when the chain is wired. */
   let fx = null;
+  const GATE_SRC = `class G extends AudioWorkletProcessor {
+    static get parameterDescriptors() { return [{ name: 'threshold', defaultValue: 0.01 }, { name: 'release', defaultValue: 0.12 }]; }
+    constructor() { super(); this.env = 0; this.g = 0; this.open = false; }
+    process(ins, outs, prm) {
+      const i = ins[0], o = outs[0];
+      if (!i || !i.length) return true;
+      const th = prm.threshold[0], rel = prm.release[0], n = i[0].length;
+      const aEnv = Math.exp(-1 / (sampleRate * 0.01)), aOpen = Math.exp(-1 / (sampleRate * 0.0008)), aClose = Math.exp(-1 / (sampleRate * rel));
+      for (let k = 0; k < n; k++) {
+        let m = 0; for (let ch = 0; ch < i.length; ch++) { const x = Math.abs(i[ch][k]); if (x > m) m = x; }
+        this.env = m > this.env ? m : this.env * aEnv;
+        if (this.env > th) this.open = true; else if (this.env < th * 0.5) this.open = false;
+        const tgt = this.open ? 1 : 0; this.g = tgt + (this.g - tgt) * (tgt > this.g ? aOpen : aClose);
+        for (let ch = 0; ch < o.length; ch++) o[ch][k] = (i[ch] || i[0])[k] * this.g;
+      }
+      return true;
+    }
+  }
+  registerProcessor('chordlab-gate', G);`;
+  let gateURL = null;
+  function loadGate(c, gt) {
+    if (!c.audioWorklet || typeof AudioWorkletNode === 'undefined') return;
+    try { gateURL = gateURL || URL.createObjectURL(new Blob([GATE_SRC], { type: 'application/javascript' })); } catch (e) { return; }
+    c.audioWorklet.addModule(gateURL).then(() => {
+      if (ctx !== c) return;
+      const node = new AudioWorkletNode(c, 'chordlab-gate', { outputChannelCount: [2] });
+      try { gt.in.disconnect(); } catch (e) {}
+      gt.in.connect(node); node.connect(gt.out); gt.node = node; applyFx();
+    }).catch(() => {});
+  }
   function buildFx() {
     const c = ctx, G = v => { const g = c.createGain(); g.gain.value = v ?? 1; return g; };
     const F = (type, freq, q, gain) => { const b = c.createBiquadFilter(); b.type = type; b.frequency.value = freq; if (q !== undefined) b.Q.value = q; if (gain !== undefined) b.gain.value = gain; return b; };
@@ -1493,6 +1589,15 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     chain(fz.in, fz.hp, fz.pre, fz.ws, fz.dc, fz.tone, fz.lvl, fz.out); n.stages.fuzz = fz;
     const dr = { in: G(), out: G(), hp: F('highpass', 160, 0.7), mid: F('peaking', 720, 0.8, 7), pre: G(), ws: WS(), tone: F('lowpass', 4000, 0.7), lvl: G() };
     chain(dr.in, dr.hp, dr.mid, dr.pre, dr.ws, dr.tone, dr.lvl, dr.out); n.stages.drive = dr;
+    // distortion: "tight" high-pass before the clipping (less mud, chuggier lows), two clipping stages with a
+    // filter between them (smoother at high gain, like a cascaded preamp), then low/mid/high and a fizz cut
+    const ds = { in: G(), out: G(), tight: F('highpass', 120, 0.7), pre: G(), ws1: WS(), mid1: F('lowpass', 6000, 0.6), pre2: G(6), ws2: WS(), dc: F('highpass', 30, 0.7),
+      low: F('lowshelf', 120), mid: F('peaking', 750, 0.9), high: F('highshelf', 3500), fizz: F('lowpass', 7500, 0.7), lvl: G() };
+    chain(ds.in, ds.tight, ds.pre, ds.ws1, ds.mid1, ds.pre2, ds.ws2, ds.dc, ds.low, ds.mid, ds.high, ds.fizz, ds.lvl, ds.out); n.stages.dist = ds;
+    // noise gate: an AudioWorklet (below). Until it has loaded, or where it isn't supported, it just passes sound through.
+    const gt = { in: G(), out: G(), node: null };
+    gt.in.connect(gt.out); n.stages.gate = gt;
+    loadGate(c, gt);
     const ch = { in: G(), out: G(), dry: G(), dl: c.createDelay(0.1), lfo: c.createOscillator(), depth: G(), wet: G() };
     ch.dl.delayTime.value = 0.018; ch.lfo.type = 'sine'; ch.lfo.connect(ch.depth); ch.depth.connect(ch.dl.delayTime); ch.lfo.start();
     chain(ch.in, ch.dry, ch.out); chain(ch.in, ch.dl, ch.wet, ch.out); n.stages.chorus = ch;
@@ -1550,6 +1655,18 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     S.drive.ws.curve = curve('drv', x => Math.tanh(2.5 * x) / Math.tanh(2.5));
     set(S.drive.tone.frequency, expMap(P.drive.tone, 1400, 9000));
     set(S.drive.lvl.gain, 0.12 + 0.5 * P.drive.level);
+    // distortion
+    set(S.dist.tight.frequency, 40 * Math.pow(10, P.dist.tight));
+    set(S.dist.pre.gain, 2 + 220 * Math.pow(P.dist.gain, 2));
+    S.dist.ws1.curve = curve('ds1', x => Math.tanh(3 * x) / Math.tanh(3));
+    S.dist.ws2.curve = curve('ds2', x => { const y = x + 0.08; return (y > 0 ? Math.tanh(4 * y) : Math.tanh(3 * y)) - Math.tanh(0.32); });
+    set(S.dist.low.gain, dB(P.dist.low)); set(S.dist.mid.gain, dB(P.dist.mid)); set(S.dist.high.gain, dB(P.dist.high));
+    set(S.dist.lvl.gain, 0.2 * P.dist.level);
+    // noise gate
+    if (S.gate.node) {
+      S.gate.node.parameters.get('threshold').setTargetAtTime(0.002 * Math.pow(100, P.gate.threshold), t, 0.02);
+      S.gate.node.parameters.get('release').setTargetAtTime(0.02 + 0.48 * P.gate.release, t, 0.02);
+    }
     // chorus
     set(S.chorus.lfo.frequency, expMap(P.chorus.rate, 0.15, 6));
     set(S.chorus.depth.gain, 0.0004 + 0.006 * P.chorus.depth);
@@ -1618,6 +1735,10 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     voices.push(v);
     src.onended = () => { const k = voices.indexOf(v); if (k >= 0) voices.splice(k, 1); };
     return v;
+  }
+  function palmAt(v, t) {
+    if (v.stopped) return; v.stopped = true;
+    try { v.g.gain.setTargetAtTime(0, t + 0.035, 0.06); v.src.stop(t + 0.7); } catch (e) {}
   }
   // damp one voice at time t (a string being re-struck, or the fretting hand letting go)
   function fadeAt(v, t) {
