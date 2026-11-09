@@ -1028,7 +1028,8 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     if (why) {
       const img = $('octo-img');
       if (!img.getAttribute('src')) img.src = 'octopus.jpg';
-      $('octo-why').textContent = why;
+      // one special case he asked for: Cerati's pinky bar with the G string pushed up a fret
+      $('octo-why').textContent = (st.frets.join('-') === '4-6-6-7-8-8' ? "You're not Cerati, lil bro. " : '') + why;
     }
     o.hidden = !why;
   }

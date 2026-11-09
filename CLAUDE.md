@@ -28,6 +28,7 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   (6 from fret 12 up) or need more than 4 fingers (a barre at the lowest fret counts as one, and so does a bar at the highest fret, e.g. Cerati's 4-6-6-8-8-8 pinky bar; a thumb over the low string adds one),
   `#octo` (inside the chord-name panel) shows `octopus.jpg` (his meme) with the reason, fading in slowly; it stays as long as
   the shape is impossible and hides when it isn't (`handCheck()` runs from `refresh()`). Switch in Display (`st.octopus`).
+  Easter egg he asked for: the exact shape 4-6-6-7-8-8 prefixes the reason with "You're not Cerati, lil bro."
   He asked for this placement instead of a popup, which felt like a jumpscare.
 - `dsharp-chart.html` — chord chart for his D# A# D# F# G# D# tuning (MIDI 39 46 51 54 56 63).
 - Live at https://irc-finds.github.io/chord-lab/ (GitHub Pages, served from the `main` branch root).
