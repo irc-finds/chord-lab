@@ -59,7 +59,7 @@ h2 { font-size: 17px; }
 .lab {
   max-width: 1120px; margin: 0 auto; display: grid; gap: 16px;
   grid-template-columns: minmax(300px, 440px) minmax(0, 1fr);
-  grid-template-areas: "board now" "board find" "board prog" "board play" "board tuning" "board view" "board saved" "board .";
+  grid-template-areas: "board now" "board find" "board prog" "board play" "board sound" "board tuning" "board view" "board saved" "board .";
   align-items: start;
 }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 12px; min-width: 0; }
@@ -70,6 +70,22 @@ h2 { font-size: 17px; }
 .area-saved { grid-area: saved; }
 .area-find { grid-area: find; }
 .area-prog { grid-area: prog; }
+.area-sound { grid-area: sound; }
+
+/* pedalboard */
+.pedals { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); align-items: start; }
+.pedal { border: 1px solid var(--line); border-left: 4px solid var(--pc); border-radius: 10px; background: var(--bg); display: grid; min-width: 0; }
+.pedal-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; border: 0; background: transparent; padding: 9px 10px; text-align: left; border-radius: 10px; }
+.pedal .led { width: 10px; height: 10px; border-radius: 50%; background: var(--faint); box-shadow: inset 0 0 0 1px var(--line); }
+.pedal.on .led { background: var(--pc); box-shadow: 0 0 7px var(--pc); }
+.pedal .pn { display: block; font-family: var(--font-display); font-weight: 700; font-size: 15px; line-height: 1.15; }
+.pedal .ps { display: block; font-size: 11.5px; color: var(--muted); }
+.pedal .sw { font-family: var(--font-data); font-size: 11px; border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; color: var(--muted); }
+.pedal.on .sw { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.pedal .knobs { display: grid; gap: 2px; padding: 0 10px 10px; }
+.pedal .knobs .slider-row { font-size: 12.5px; gap: 8px; grid-template-columns: 58px minmax(0, 1fr) 54px; }
+.pedal .knobs .slider-row output { min-width: 50px; font-size: 11.5px; }
+.pedal input[type="range"] { accent-color: var(--pc); }
 
 /* progression */
 .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
@@ -214,7 +230,7 @@ select { border: 1px solid var(--line); background: var(--bg); border-radius: 9p
 footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(--muted); }
 
 @media (max-width: 860px) {
-  .lab { grid-template-columns: minmax(0, 1fr); grid-template-areas: "now" "board" "find" "prog" "play" "tuning" "view" "saved"; }
+  .lab { grid-template-columns: minmax(0, 1fr); grid-template-areas: "now" "board" "find" "prog" "play" "sound" "tuning" "view" "saved"; }
   .area-now { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 6; box-shadow: 0 6px 16px -10px rgba(0,0,0,0.35); }
   .chord-name { font-size: 30px; }
   .alts { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
@@ -297,6 +313,16 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
       <span class="eyebrow">My progressions</span>
       <div class="saved-list" id="progs"></div>
     </div>
+  </section>
+
+  <section class="panel area-sound" aria-labelledby="sound-h">
+    <div class="row" style="justify-content:space-between">
+      <h2 id="sound-h">Sound and pedals</h2>
+      <div class="seg" id="seg-tone" role="group" aria-label="Guitar type"><button type="button" data-v="acoustic">Acoustic</button><button type="button" data-v="electric">Electric</button></div>
+    </div>
+    <label class="field"><span class="eyebrow">Rig</span><select id="rig" aria-label="Ready-made rig"></select></label>
+    <div class="pedals" id="pedals"></div>
+    <div class="hint">The signal runs in this order: guitar → compressor → fuzz → overdrive → chorus → amp → delay → reverb. Tap a pedal to switch it on and show its knobs, then tap ▶ to hear it.</div>
   </section>
 
   <section class="panel area-play" aria-labelledby="play-h">
@@ -439,6 +465,16 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     tapPlay: true, haze: true, octMix: 110, findQ: '', rootPick: 3, saved: [], myTunings: [],
     prog: freshProg(), progs: []
   });
+  function freshFx(reverbOn) {
+    return { mode: 'acoustic', rig: 'acoustic', p: {
+      comp: { on: false, sustain: 0.5, level: 0.5 },
+      fuzz: { on: false, gain: 0.75, gate: 0.4, stab: 0.5, tone: 0.55, level: 0.5 },
+      drive: { on: false, drive: 0.4, tone: 0.5, level: 0.5 },
+      chorus: { on: false, rate: 0.35, depth: 0.5, mix: 0.45 },
+      amp: { on: false, gain: 0.25, bass: 0.5, mid: 0.5, treble: 0.55, volume: 0.6 },
+      delay: { on: false, time: 0.3, feedback: 0.35, mix: 0.3 },
+      reverb: { on: reverbOn !== false, size: 0.22, mix: 0.22 } } };
+  }
   function freshProg() { return { name: '', chords: [], sub: 2, pat: 'D-DU-UDU', bpm: 90, loop: true }; }
   const okProg = p => p && Array.isArray(p.chords) && [1, 2, 3, 4].includes(p.sub) && typeof p.pat === 'string' && p.pat.length === 4 * p.sub
     && p.chords.every(c => INSTRUMENTS[c.inst] && Array.isArray(c.frets) && Array.isArray(c.tuning) && c.frets.length === c.tuning.length);
@@ -448,6 +484,8 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     if (raw && INSTRUMENTS[raw.inst] && Array.isArray(raw.tuning) && raw.tuning.length === INSTRUMENTS[raw.inst].n) st = Object.assign(fresh(), raw);
   } catch (e) {}
   if (!okProg(st.prog)) st.prog = freshProg();
+  if (!st.fx || typeof st.fx.p !== 'object') st.fx = freshFx(st.haze);
+  else { const d = freshFx(); for (const k in d.p) st.fx.p[k] = Object.assign(d.p[k], st.fx.p[k] || {}); if (st.fx.mode !== 'electric') st.fx.mode = 'acoustic'; }
   st.progs = Array.isArray(st.progs) ? st.progs.filter(okProg) : [];
   const save = () => { try { localStorage.setItem('chord-lab', JSON.stringify(st)); } catch (e) {} };
 
@@ -702,7 +740,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
   const sliders = [['spread', v => v + ' ms'], ['bpm', v => v + ' bpm'], ['ring', v => Number(v).toFixed(1) + ' s'], ['octMix', v => v + '%']];
   sliders.forEach(([id, f]) => { $(id).addEventListener('input', e => { st[id] = Number(e.target.value); $(id + '-o').textContent = f(st[id]); save(); }); });
   $('tap-play').addEventListener('change', e => { st.tapPlay = e.target.checked; save(); });
-  $('haze').addEventListener('change', e => { st.haze = e.target.checked; if (wet) wet.gain.value = st.haze ? 0.22 : 0; save(); });
+  $('haze').addEventListener('change', e => { st.fx.p.reverb.on = e.target.checked; st.fx.rig = null; wireFx(); renderPedals(); save(); });
   $('ghosts').addEventListener('change', e => { st.ghosts = e.target.checked; save(); renderBoard(); });
 
   /* ---------- saved ---------- */
@@ -1195,6 +1233,80 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     renderProg();
   }
 
+  /* ---------- sound and pedals ---------- */
+  const pct = v => Math.round(v * 100) + '%';
+  const dbTxt = v => { const x = Math.round((v - 0.5) * 24); return (x > 0 ? '+' : '') + x + ' dB'; };
+  const PEDALS = [
+    { id: 'comp', name: 'Compressor', sub: 'evens out, adds sustain', color: '#3f9a6e', knobs: [['sustain', 'Sustain', pct], ['level', 'Level', pct]] },
+    { id: 'fuzz', name: 'Fuzz', sub: 'gated and sputtery', color: '#d0562c', knobs: [['gain', 'Gain', pct], ['gate', 'Gate', pct], ['stab', 'Stab', pct], ['tone', 'Tone', pct], ['level', 'Level', pct]] },
+    { id: 'drive', name: 'Overdrive', sub: 'warm mid push', color: '#86b23a', knobs: [['drive', 'Drive', pct], ['tone', 'Tone', pct], ['level', 'Level', pct]] },
+    { id: 'chorus', name: 'Chorus', sub: 'shimmer and width', color: '#3a86cc', knobs: [['rate', 'Rate', v => (0.15 * Math.pow(40, v)).toFixed(1) + ' Hz'], ['depth', 'Depth', pct], ['mix', 'Mix', pct]] },
+    { id: 'amp', name: 'Amp + cabinet', sub: 'preamp, tone stack, 4×12 cab', color: '#a0784e', knobs: [['gain', 'Gain', pct], ['bass', 'Bass', dbTxt], ['mid', 'Mid', dbTxt], ['treble', 'Treble', dbTxt], ['volume', 'Volume', pct]] },
+    { id: 'delay', name: 'Delay', sub: 'echoes', color: '#7a62c8', knobs: [['time', 'Time', v => Math.round((0.06 + 1.14 * v) * 1000) + ' ms'], ['feedback', 'Repeats', pct], ['mix', 'Mix', pct]] },
+    { id: 'reverb', name: 'Reverb', sub: 'room to cathedral', color: '#2f9aa3', knobs: [['size', 'Size', v => (0.6 + 7.4 * v).toFixed(1) + ' s'], ['mix', 'Mix', pct]] }
+  ];
+  const RIGS = [
+    ['acoustic', 'Acoustic in a room', 'acoustic', { reverb: { on: true, size: 0.22, mix: 0.22 } }],
+    ['clean', 'Clean electric', 'electric', { comp: { on: true, sustain: 0.4, level: 0.5 }, amp: { on: true, gain: 0.15, bass: 0.5, mid: 0.45, treble: 0.6, volume: 0.6 }, reverb: { on: true, size: 0.25, mix: 0.2 } }],
+    ['dream', 'Dreamy clean', 'electric', { chorus: { on: true, rate: 0.3, depth: 0.55, mix: 0.5 }, amp: { on: true, gain: 0.12, bass: 0.45, mid: 0.45, treble: 0.6, volume: 0.85 }, delay: { on: true, time: 0.42, feedback: 0.45, mix: 0.3 }, reverb: { on: true, size: 0.6, mix: 0.45 } }],
+    ['crunch', 'Crunch', 'electric', { amp: { on: true, gain: 0.6, bass: 0.55, mid: 0.6, treble: 0.55, volume: 0.55 }, reverb: { on: true, size: 0.18, mix: 0.15 } }],
+    ['lead', 'Lead', 'electric', { comp: { on: true, sustain: 0.5, level: 0.5 }, drive: { on: true, drive: 0.5, tone: 0.55, level: 0.6 }, amp: { on: true, gain: 0.55, bass: 0.5, mid: 0.65, treble: 0.55, volume: 0.45 }, delay: { on: true, time: 0.32, feedback: 0.3, mix: 0.22 }, reverb: { on: true, size: 0.3, mix: 0.2 } }],
+    ['sputter', 'Sputtery fuzz', 'electric', { fuzz: { on: true, gain: 0.85, gate: 0.6, stab: 0.3, tone: 0.5, level: 0.5 }, amp: { on: true, gain: 0.2, bass: 0.55, mid: 0.5, treble: 0.5, volume: 0.5 }, reverb: { on: true, size: 0.15, mix: 0.12 } }],
+    ['wall', 'Wall of fuzz (shoegaze)', 'electric', { fuzz: { on: true, gain: 0.9, gate: 0.08, stab: 0.5, tone: 0.4, level: 0.5 }, chorus: { on: true, rate: 0.3, depth: 0.6, mix: 0.5 }, amp: { on: true, gain: 0.3, bass: 0.55, mid: 0.4, treble: 0.4, volume: 0.6 }, delay: { on: true, time: 0.35, feedback: 0.5, mix: 0.3 }, reverb: { on: true, size: 0.85, mix: 0.6 } }]
+  ];
+  function soundChanged() { st.fx.rig = null; $('rig').value = ''; save(); }
+  function renderPedals() {
+    syncSeg('seg-tone', st.fx.mode);
+    const rig = $('rig'); rig.innerHTML = '';
+    const cu = document.createElement('option'); cu.value = ''; cu.textContent = 'Custom'; rig.appendChild(cu);
+    RIGS.forEach(([id, name]) => { const o = document.createElement('option'); o.value = id; o.textContent = name; rig.appendChild(o); });
+    rig.value = st.fx.rig || '';
+    const box = $('pedals'); box.innerHTML = '';
+    PEDALS.forEach(pd => {
+      const v = st.fx.p[pd.id];
+      const card = document.createElement('div'); card.className = 'pedal' + (v.on ? ' on' : ''); card.style.setProperty('--pc', pd.color);
+      const head = document.createElement('button'); head.type = 'button'; head.className = 'pedal-head';
+      head.setAttribute('aria-pressed', String(v.on)); head.setAttribute('aria-label', pd.name + (v.on ? ', on' : ', off'));
+      head.innerHTML = '<span class="led"></span><span><span class="pn"></span><span class="ps"></span></span><span class="sw"></span>';
+      head.querySelector('.pn').textContent = pd.name; head.querySelector('.ps').textContent = pd.sub; head.querySelector('.sw').textContent = v.on ? 'ON' : 'OFF';
+      head.addEventListener('click', () => {
+        v.on = !v.on; st.fx.rig = null; wireFx(); save(); renderPedals();
+        if (pd.id === 'reverb') $('haze').checked = v.on;
+      });
+      card.appendChild(head);
+      if (v.on) {
+        const knobs = document.createElement('div'); knobs.className = 'knobs';
+        pd.knobs.forEach(([k, label, f]) => {
+          const row = document.createElement('div'); row.className = 'slider-row';
+          const id = 'fx-' + pd.id + '-' + k;
+          row.innerHTML = `<label for="${id}"></label><input type="range" id="${id}" min="0" max="1" step="0.01"><output></output>`;
+          row.querySelector('label').textContent = label;
+          const inp = row.querySelector('input'), out = row.querySelector('output');
+          inp.value = v[k]; out.textContent = f(v[k]);
+          inp.addEventListener('input', () => { v[k] = Number(inp.value); out.textContent = f(v[k]); if (k !== 'size') applyFx(); soundChanged(); });
+          inp.addEventListener('change', () => { if (k === 'size') applyFx(); });
+          knobs.appendChild(row);
+        });
+        card.appendChild(knobs);
+      }
+      box.appendChild(card);
+    });
+  }
+  document.querySelectorAll('#seg-tone button').forEach(b => b.addEventListener('click', () => {
+    const m = b.dataset.v; if (m === st.fx.mode) return;
+    st.fx.mode = m;
+    st.fx.p.amp.on = m === 'electric';   // an electric goes into an amp; an acoustic doesn't (switch it back on if you like)
+    st.fx.rig = null; wireFx(); save(); renderPedals();
+  }));
+  $('rig').addEventListener('change', e => {
+    const r = RIGS.find(x => x[0] === e.target.value); if (!r) return;
+    const [id, , mode, spec] = r;
+    for (const k in st.fx.p) { st.fx.p[k].on = false; if (spec[k]) Object.assign(st.fx.p[k], spec[k]); }
+    st.fx.mode = mode; st.fx.rig = id;
+    $('haze').checked = st.fx.p.reverb.on;
+    wireFx(); applyFx(); save(); renderPedals();
+  });
+
   /* ---------- refresh ---------- */
   function refresh() {
     analyzeNow();
@@ -1203,14 +1315,14 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     $('speed-arp').hidden = (st.play === 'down' || st.play === 'up');
     $('oct-row').hidden = !inst().course;
     sliders.forEach(([id, f]) => { $(id).value = st[id]; $(id + '-o').textContent = f(st[id]); });
-    $('tap-play').checked = st.tapPlay; $('haze').checked = st.haze; $('ghosts').checked = st.ghosts;
+    $('tap-play').checked = st.tapPlay; $('haze').checked = st.fx.p.reverb.on; $('ghosts').checked = st.ghosts;
     renderTop(); renderNow(); renderBoard(); renderPresets(); renderStringsEd(); renderMyTunings(); renderSaved(); renderProg();
     if (st.findQ && findFor !== st.tuning.join() + '|' + st.maxFret) runFind(st.findQ);   // tuning changed: search again
     save();
   }
 
   /* ---------- audio: Karplus-Strong plucked string ---------- */
-  let ctx = null, master = null, wet = null, voices = [];
+  let ctx = null, master = null, voices = [];
   const cache = new Map();
   // iPhone: by default Web Audio is muted by the ring/silent switch, and the audio context gets
   // "interrupted" when you leave the app. Ask for a media-playback session (like a music app), and
@@ -1227,7 +1339,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
   }
   function rebuildAudio() {
     try { ctx && ctx.close(); } catch (e) {}
-    ctx = null; voices = []; cache.clear();
+    ctx = null; fx = null; voices = []; cache.clear(); curveCache.clear();
     initAudio();
   }
   // Call from inside a tap. Runs fn once sound can actually play.
@@ -1252,37 +1364,142 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return false;
     ctx = new AC();
-    master = ctx.createGain(); master.gain.value = 0.85; master.connect(ctx.destination);
-    const len = Math.floor(ctx.sampleRate * 2.2), ir = ctx.createBuffer(2, len, ctx.sampleRate);
-    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
-    const conv = ctx.createConvolver(); conv.buffer = ir;
-    wet = ctx.createGain(); wet.gain.value = st.haze ? 0.22 : 0; wet.connect(conv); conv.connect(master);
+    master = ctx.createGain(); master.gain.value = 0.85;
+    // safety limiter at the very end, so a cranked fuzz or long delay can't blast or crackle
+    const lim = ctx.createDynamicsCompressor();
+    lim.threshold.value = -4; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.12;
+    master.connect(lim); lim.connect(ctx.destination);
+    buildFx(); wireFx(); applyFx();
     return true;
+  }
+
+  /* ---------- pedal chain ----------
+     guitar → (electric: pickup) → compressor → fuzz → overdrive → chorus → amp + cab → delay → reverb → master.
+     Every pedal has its own in/out node; a pedal that's off is simply skipped when the chain is wired. */
+  let fx = null;
+  function buildFx() {
+    const c = ctx, G = v => { const g = c.createGain(); g.gain.value = v ?? 1; return g; };
+    const F = (type, freq, q, gain) => { const b = c.createBiquadFilter(); b.type = type; b.frequency.value = freq; if (q !== undefined) b.Q.value = q; if (gain !== undefined) b.gain.value = gain; return b; };
+    const WS = () => { const w = c.createWaveShaper(); w.oversample = '4x'; return w; };
+    const chain = (...ns) => { for (let i = 0; i < ns.length - 1; i++) ns[i].connect(ns[i + 1]); };
+    const n = { input: G(), stages: {} };
+    // electric pickup: a resonant peak and a gentle top roll-off, like a magnetic pickup into a cable
+    const pk = { in: G(), out: G(), peak: F('peaking', 3600, 1.6, 5), roll: F('lowpass', 6500, 0.7) };
+    chain(pk.in, pk.peak, pk.roll, pk.out); n.pickup = pk;
+    const comp = { in: G(), out: G(), node: c.createDynamicsCompressor() };
+    comp.node.attack.value = 0.004; comp.node.release.value = 0.25; comp.node.knee.value = 6;
+    chain(comp.in, comp.node, comp.out); n.stages.comp = comp;
+    // fuzz: bass cut in, heavy gain into a clipper with a dead zone around zero (the gate) and an offset (stab),
+    // which makes notes sputter and break up as they fade; then a DC blocker, tone and level
+    const fz = { in: G(), out: G(), hp: F('highpass', 110, 0.7), pre: G(), ws: WS(), dc: F('highpass', 25, 0.7), tone: F('lowpass', 3000, 0.7), lvl: G() };
+    chain(fz.in, fz.hp, fz.pre, fz.ws, fz.dc, fz.tone, fz.lvl, fz.out); n.stages.fuzz = fz;
+    const dr = { in: G(), out: G(), hp: F('highpass', 160, 0.7), mid: F('peaking', 720, 0.8, 7), pre: G(), ws: WS(), tone: F('lowpass', 4000, 0.7), lvl: G() };
+    chain(dr.in, dr.hp, dr.mid, dr.pre, dr.ws, dr.tone, dr.lvl, dr.out); n.stages.drive = dr;
+    const ch = { in: G(), out: G(), dry: G(), dl: c.createDelay(0.1), lfo: c.createOscillator(), depth: G(), wet: G() };
+    ch.dl.delayTime.value = 0.018; ch.lfo.type = 'sine'; ch.lfo.connect(ch.depth); ch.depth.connect(ch.dl.delayTime); ch.lfo.start();
+    chain(ch.in, ch.dry, ch.out); chain(ch.in, ch.dl, ch.wet, ch.out); n.stages.chorus = ch;
+    // amp: preamp gain into a slightly lopsided (tube-like) clipper, bass/mid/treble, then a 4×12 speaker cabinet curve
+    const amp = { in: G(), out: G(), pre: G(), ws: WS(), bass: F('lowshelf', 110), mid: F('peaking', 650, 0.7), treb: F('highshelf', 3200),
+      cabHp: F('highpass', 80, 0.7), cabRes: F('peaking', 110, 1.2, 3), cabHonk: F('peaking', 1900, 1.4, 3), cabLp: F('lowpass', 5000, 0.9), cabLp2: F('lowpass', 7000, 0.7), vol: G() };
+    chain(amp.in, amp.pre, amp.ws, amp.bass, amp.mid, amp.treb, amp.cabHp, amp.cabRes, amp.cabHonk, amp.cabLp, amp.cabLp2, amp.vol, amp.out); n.stages.amp = amp;
+    const dl = { in: G(), out: G(), dry: G(), dl: c.createDelay(2), fb: G(), tone: F('lowpass', 3200, 0.7), wet: G() };
+    chain(dl.in, dl.dry, dl.out); chain(dl.in, dl.dl, dl.tone, dl.wet, dl.out); dl.tone.connect(dl.fb); dl.fb.connect(dl.dl); n.stages.delay = dl;
+    const rv = { in: G(), out: G(), dry: G(), conv: c.createConvolver(), wet: G(), size: 0 };
+    chain(rv.in, rv.dry, rv.out); chain(rv.in, rv.conv, rv.wet, rv.out); n.stages.reverb = rv;
+    fx = n;
+  }
+  function wireFx() {
+    if (!fx) return;
+    const outs = [fx.input, fx.pickup.out, ...PEDALS.map(p => fx.stages[p.id].out)];
+    outs.forEach(o => { try { o.disconnect(); } catch (e) {} });
+    let prev = fx.input;
+    if (st.fx.mode === 'electric') { prev.connect(fx.pickup.in); prev = fx.pickup.out; }
+    PEDALS.forEach(p => { if (st.fx.p[p.id].on) { const s = fx.stages[p.id]; prev.connect(s.in); prev = s.out; } });
+    prev.connect(master);
+  }
+  const curveCache = new Map();
+  function curve(key, f) {
+    if (curveCache.has(key)) return curveCache.get(key);
+    const n = 2048, a = new Float32Array(n);
+    for (let i = 0; i < n; i++) a[i] = f(i / (n - 1) * 2 - 1);
+    curveCache.set(key, a); return a;
+  }
+  const expMap = (v, lo, hi) => lo * Math.pow(hi / lo, v);
+  const dB = v => (v - 0.5) * 24;
+  function makeIR(sec) {
+    const len = Math.floor(ctx.sampleRate * sec), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+    return ir;
+  }
+  function applyFx() {
+    if (!fx || !ctx) return;
+    const P = st.fx.p, S = fx.stages, t = ctx.currentTime;
+    const set = (param, v) => param.setTargetAtTime(v, t, 0.02);
+    // compressor
+    set(S.comp.node.threshold, -8 - 42 * P.comp.sustain); set(S.comp.node.ratio, 3 + 9 * P.comp.sustain);
+    set(S.comp.out.gain, (0.3 + 0.9 * P.comp.level) * (1 + 1.2 * P.comp.sustain));
+    // fuzz
+    set(S.fuzz.pre.gain, 2 + 90 * Math.pow(P.fuzz.gain, 1.5));
+    const dz = P.fuzz.gate * 0.55, bias = (P.fuzz.stab - 0.5) * 0.7;
+    S.fuzz.ws.curve = curve(`fz|${dz.toFixed(3)}|${bias.toFixed(3)}`, x => {
+      const xb = x + bias, a = Math.abs(xb) - dz;
+      return a <= 0 ? 0 : Math.sign(xb) * Math.tanh(5 * a);
+    });
+    set(S.fuzz.tone.frequency, expMap(P.fuzz.tone, 700, 9000));
+    set(S.fuzz.lvl.gain, 0.3 * P.fuzz.level);
+    // overdrive
+    set(S.drive.pre.gain, 1 + 30 * P.drive.drive);
+    S.drive.ws.curve = curve('drv', x => Math.tanh(2.5 * x) / Math.tanh(2.5));
+    set(S.drive.tone.frequency, expMap(P.drive.tone, 1400, 9000));
+    set(S.drive.lvl.gain, 0.12 + 0.5 * P.drive.level);
+    // chorus
+    set(S.chorus.lfo.frequency, expMap(P.chorus.rate, 0.15, 6));
+    set(S.chorus.depth.gain, 0.0004 + 0.006 * P.chorus.depth);
+    set(S.chorus.wet.gain, P.chorus.mix); set(S.chorus.dry.gain, 1 - 0.4 * P.chorus.mix);
+    // amp
+    set(S.amp.pre.gain, 1 + 45 * Math.pow(P.amp.gain, 2));
+    S.amp.ws.curve = curve('amp', x => (Math.tanh(1.6 * (x + 0.12)) - Math.tanh(1.6 * 0.12)) / Math.tanh(1.6));
+    set(S.amp.bass.gain, dB(P.amp.bass)); set(S.amp.mid.gain, dB(P.amp.mid)); set(S.amp.treb.gain, dB(P.amp.treble));
+    set(S.amp.vol.gain, 0.75 * P.amp.volume / (1 + 2.5 * P.amp.gain));
+    // delay
+    set(S.delay.dl.delayTime, 0.06 + 1.14 * P.delay.time);
+    set(S.delay.fb.gain, 0.85 * P.delay.feedback); set(S.delay.wet.gain, 0.9 * P.delay.mix); set(S.delay.dry.gain, 1);
+    // reverb
+    const size = 0.6 + 7.4 * P.reverb.size;
+    if (Math.abs(size - S.reverb.size) > 0.05) { S.reverb.conv.buffer = makeIR(size); S.reverb.size = size; }
+    set(S.reverb.wet.gain, P.reverb.mix * (2.2 / Math.sqrt(size * 2.2))); set(S.reverb.dry.gain, 1 - 0.35 * P.reverb.mix);
   }
   // tone: 0 = bright thin string, higher = darker wound string (more smoothing of the pick noise)
   function pluck(midi, tone) {
     tone = tone ?? 2;
-    const key = midi + '|' + st.ring + '|' + tone;
+    const elec = st.fx.mode === 'electric';
+    const key = midi + '|' + st.ring + '|' + tone + '|' + (elec ? 'e' : 'a');
     if (cache.has(key)) return cache.get(key);
     const sr = ctx.sampleRate, f = 440 * Math.pow(2, (midi - 69) / 12);
     const N = Math.max(2, Math.floor(sr / f - 0.5));
-    const len = Math.floor(sr * (st.ring + 0.4));
+    const ringSec = elec ? Math.min(9, st.ring * 1.7) : st.ring;   // solid body: longer sustain
+    const len = Math.floor(sr * (ringSec + 0.4));
     const buf = ctx.createBuffer(1, len, sr), d = buf.getChannelData(0);
     const ring = new Float32Array(N);
     // excitation: the string's shape when plucked (a triangle peaking at the pick point) plus a little noise,
     // so every note has a solid fundamental. Thin strings are picked nearer the bridge = brighter.
-    const pp = 0.12 + tone * 0.025;
+    const pp = elec ? 0.09 + tone * 0.012 : 0.12 + tone * 0.025;
     let mean = 0;
     for (let i = 0; i < N; i++) { const x = i / N; ring[i] = (x < pp ? x / pp : (1 - x) / (1 - pp)) + (Math.random() * 2 - 1) * 0.3; mean += ring[i]; }
     mean /= N; for (let i = 0; i < N; i++) ring[i] -= mean;
-    for (let k = 0; k < tone; k++) for (let i = 0; i < N; i++) ring[i] = (ring[i] + ring[(i + 1) % N]) / 2;
-    const g = Math.pow(0.03, 1 / (f * st.ring));
+    const smooth = elec ? Math.ceil(tone / 2) : tone;
+    for (let k = 0; k < smooth; k++) for (let i = 0; i < N; i++) ring[i] = (ring[i] + ring[(i + 1) % N]) / 2;
+    const g = Math.pow(0.03, 1 / (f * ringSec));
     let idx = 0, peak = 0;
     for (let i = 0; i < len; i++) {
       const a = ring[idx], b = ring[(idx + 1) % N];
-      d[i] = a; if (Math.abs(a) > peak) peak = Math.abs(a);
+      d[i] = a;
       ring[idx] = g * 0.5 * (a + b); idx = (idx + 1) % N;
     }
+    // electric: a magnetic pickup "hears" the string at one spot, which carves out some overtones (that's the
+    // hollow, snappy electric character). Modelled as the string minus a slightly delayed copy of itself.
+    if (elec) { const P = Math.max(1, Math.round(N * 0.16)); for (let i = len - 1; i >= P; i--) d[i] -= 0.9 * d[i - P]; }
+    for (let i = 0; i < len; i++) if (Math.abs(d[i]) > peak) peak = Math.abs(d[i]);
     const fade = Math.floor(sr * 0.25);
     for (let i = 0; i < len; i++) { d[i] /= (peak || 1); if (i > len - fade) d[i] *= (len - i) / fade; }
     const item = { buf, rate: f * (N + 0.5) / sr };
@@ -1297,7 +1514,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     src.connect(g);
     let out = g;
     if (pan && ctx.createStereoPanner) { const pn = ctx.createStereoPanner(); pn.pan.value = pan; g.connect(pn); out = pn; }
-    out.connect(master); out.connect(wet);
+    out.connect(fx.input);
     src.start(when);
     const v = { src, g, end: when + p.buf.duration / src.playbackRate.value, stopped: false };
     voices.push(v);
@@ -1361,6 +1578,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
 
   $('find-in').value = st.findQ || '';
   $('prog-name').value = st.prog.name || '';
+  renderPedals();
   refresh();
 })();
 </script>
