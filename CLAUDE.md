@@ -10,7 +10,7 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   progressions (`st.prog` working copy, `st.progs` saved): chords with lengths in beats, a one-bar strum pattern
   (`sub` steps per beat, `pat` of D/U/X/-), tempo and loop, played by a look-ahead scheduler on the audio clock.
   Sound: `st.fx` = { mode: acoustic|electric, rig, p: per-pedal settings 0..1 }. Voices feed `fx.input`; `wireFx()` chains the
-  pedals that are on (fixed order: comp, fuzz, drive, chorus, amp+cab, delay, reverb), `applyFx()` maps knobs to node params,
+  pedals that are on in `st.fx.order` (user-reorderable; rigs reset it to the default comp, fuzz, drive, chorus, amp+cab, delay, reverb), `applyFx()` maps knobs to node params,
   and a limiter sits before the speakers. Electric mode = longer sustain + pickup-position comb in `pluck()`. Keep rig levels
   close to the acoustic default (measured RMS ≈ 0.15–0.25) so switching rigs doesn't jump in volume.
 - `dsharp-chart.html` — chord chart for his D# A# D# F# G# D# tuning (MIDI 39 46 51 54 56 63).

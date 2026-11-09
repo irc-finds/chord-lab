@@ -80,7 +80,15 @@ h2 { font-size: 17px; }
 /* pedalboard */
 .pedals { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); align-items: start; }
 .pedal { border: 1px solid var(--line); border-left: 4px solid var(--pc); border-radius: 10px; background: var(--bg); display: grid; min-width: 0; }
-.pedal-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; border: 0; background: transparent; padding: 9px 10px; text-align: left; border-radius: 10px; }
+.pedal-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.pedal-head { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; gap: 8px; align-items: center; border: 0; background: transparent; padding: 9px 4px 9px 10px; text-align: left; border-radius: 10px; min-width: 0; }
+.pedal .no { font-family: var(--font-data); font-size: 11px; color: var(--muted); min-width: 10px; text-align: right; }
+.pedal .mv { display: flex; gap: 2px; padding-right: 6px; }
+.pedal .mv button { width: 30px; height: 30px; border: 1px solid var(--line); background: var(--surface); border-radius: 7px; font-size: 14px; line-height: 1; color: var(--muted); }
+.pedal .mv button:hover:not(:disabled) { border-color: var(--muted); color: var(--ink); }
+.pedal .mv button:disabled { opacity: 0.3; cursor: default; }
+.chain-line { font-size: 12.5px; color: var(--muted); }
+.chain-line b { color: var(--ink); font-weight: 600; }
 .pedal .led { width: 10px; height: 10px; border-radius: 50%; background: var(--faint); box-shadow: inset 0 0 0 1px var(--line); }
 .pedal.on .led { background: var(--pc); box-shadow: 0 0 7px var(--pc); }
 .pedal .pn { display: block; font-family: var(--font-display); font-weight: 700; font-size: 15px; line-height: 1.15; }
@@ -328,7 +336,9 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     </div>
     <label class="field"><span class="eyebrow">Rig</span><select id="rig" aria-label="Ready-made rig"></select></label>
     <div class="pedals" id="pedals"></div>
-    <div class="hint">The signal runs in this order: guitar → compressor → fuzz → overdrive → chorus → amp → delay → reverb. Tap a pedal to switch it on and show its knobs, then tap ▶ to hear it.</div>
+    <div class="chain-line" id="chain-line" aria-live="polite"></div>
+    <div class="row tight"><button class="btn" type="button" id="order-reset">Reset pedal order</button></div>
+    <div class="hint">Tap a pedal to switch it on and show its knobs, then tap ▶ to hear it. Use ↑ ↓ to move a pedal earlier or later in the chain; the numbers show the order the sound goes through. Picking a rig also puts the pedals back in the standard order.</div>
   </section>
 
   <section class="panel area-play" aria-labelledby="play-h">
@@ -774,8 +784,9 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     tapPlay: true, haze: true, octMix: 110, findQ: '', rootPick: 3, saved: [], myTunings: [],
     prog: freshProg(), progs: []
   });
+  const DEFAULT_ORDER = ['comp', 'fuzz', 'drive', 'chorus', 'amp', 'delay', 'reverb'];
   function freshFx(reverbOn) {
-    return { mode: 'acoustic', rig: 'acoustic', p: {
+    return { mode: 'acoustic', rig: 'acoustic', order: DEFAULT_ORDER.slice(), p: {
       comp: { on: false, sustain: 0.5, level: 0.5 },
       fuzz: { on: false, gain: 0.75, gate: 0.4, stab: 0.5, tone: 0.55, level: 0.5 },
       drive: { on: false, drive: 0.4, tone: 0.5, level: 0.5 },
@@ -795,6 +806,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
   if (!okProg(st.prog)) st.prog = freshProg();
   if (!st.fx || typeof st.fx.p !== 'object') st.fx = freshFx(st.haze);
   else { const d = freshFx(); for (const k in d.p) st.fx.p[k] = Object.assign(d.p[k], st.fx.p[k] || {}); if (st.fx.mode !== 'electric') st.fx.mode = 'acoustic'; }
+  if (!Array.isArray(st.fx.order) || st.fx.order.length !== DEFAULT_ORDER.length || !DEFAULT_ORDER.every(k => st.fx.order.includes(k))) st.fx.order = DEFAULT_ORDER.slice();
   st.progs = Array.isArray(st.progs) ? st.progs.filter(okProg) : [];
   const save = () => { try { localStorage.setItem('chord-lab', JSON.stringify(st)); } catch (e) {} };
 
@@ -1564,25 +1576,56 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     ['wall', 'Wall of fuzz (shoegaze)', 'electric', { fuzz: { on: true, gain: 0.9, gate: 0.08, stab: 0.5, tone: 0.4, level: 0.5 }, chorus: { on: true, rate: 0.3, depth: 0.6, mix: 0.5 }, amp: { on: true, gain: 0.3, bass: 0.55, mid: 0.4, treble: 0.4, volume: 0.6 }, delay: { on: true, time: 0.35, feedback: 0.5, mix: 0.3 }, reverb: { on: true, size: 0.85, mix: 0.6 } }]
   ];
   function soundChanged() { st.fx.rig = null; $('rig').value = ''; save(); }
+  function movePedal(id, d) {
+    const o = st.fx.order, i = o.indexOf(id), j = i + d;
+    if (i < 0 || j < 0 || j >= o.length) return;
+    [o[i], o[j]] = [o[j], o[i]];
+    st.fx.rig = null; wireFx(); save(); renderPedals();
+    // keep keyboard focus on the pedal that moved
+    const same = document.querySelector(`[data-mv="${id}${d}"]`), other = document.querySelector(`[data-mv="${id}${-d}"]`);
+    ((same && !same.disabled) ? same : other)?.focus();
+  }
+  function renderChainLine() {
+    const on = st.fx.order.filter(id => st.fx.p[id].on).map(id => PEDALS.find(x => x.id === id).name);
+    const el = $('chain-line'); el.innerHTML = '';
+    const parts = [st.fx.mode === 'electric' ? 'Electric guitar' : 'Acoustic guitar', ...on, 'speakers'];
+    el.append('What you hear: ');
+    parts.forEach((t, i) => { const b = document.createElement('b'); b.textContent = t; el.append(b); if (i < parts.length - 1) el.append(' → '); });
+    $('order-reset').hidden = st.fx.order.join() === DEFAULT_ORDER.join();
+  }
+  $('order-reset').addEventListener('click', () => { st.fx.order = DEFAULT_ORDER.slice(); st.fx.rig = null; wireFx(); save(); renderPedals(); });
   function renderPedals() {
     syncSeg('seg-tone', st.fx.mode);
     const rig = $('rig'); rig.innerHTML = '';
     const cu = document.createElement('option'); cu.value = ''; cu.textContent = 'Custom'; rig.appendChild(cu);
     RIGS.forEach(([id, name]) => { const o = document.createElement('option'); o.value = id; o.textContent = name; rig.appendChild(o); });
     rig.value = st.fx.rig || '';
+    renderChainLine();
     const box = $('pedals'); box.innerHTML = '';
-    PEDALS.forEach(pd => {
+    const order = st.fx.order;
+    order.map(id => PEDALS.find(x => x.id === id)).forEach((pd, pos) => {
       const v = st.fx.p[pd.id];
       const card = document.createElement('div'); card.className = 'pedal' + (v.on ? ' on' : ''); card.style.setProperty('--pc', pd.color);
+      const top = document.createElement('div'); top.className = 'pedal-top';
       const head = document.createElement('button'); head.type = 'button'; head.className = 'pedal-head';
-      head.setAttribute('aria-pressed', String(v.on)); head.setAttribute('aria-label', pd.name + (v.on ? ', on' : ', off'));
-      head.innerHTML = '<span class="led"></span><span><span class="pn"></span><span class="ps"></span></span><span class="sw"></span>';
+      head.setAttribute('aria-pressed', String(v.on)); head.setAttribute('aria-label', `${pos + 1}. ${pd.name}, ${v.on ? 'on' : 'off'}`);
+      head.innerHTML = '<span class="no"></span><span class="led"></span><span><span class="pn"></span><span class="ps"></span></span><span class="sw"></span>';
+      head.querySelector('.no').textContent = pos + 1;
       head.querySelector('.pn').textContent = pd.name; head.querySelector('.ps').textContent = pd.sub; head.querySelector('.sw').textContent = v.on ? 'ON' : 'OFF';
       head.addEventListener('click', () => {
         v.on = !v.on; st.fx.rig = null; wireFx(); save(); renderPedals();
         if (pd.id === 'reverb') $('haze').checked = v.on;
       });
-      card.appendChild(head);
+      const mv = document.createElement('div'); mv.className = 'mv';
+      [[-1, '↑', 'earlier'], [1, '↓', 'later']].forEach(([d, g, word]) => {
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = g; b.dataset.mv = pd.id + d;
+        b.setAttribute('aria-label', `Move ${pd.name} ${word} in the chain`); b.title = `Move ${word} in the chain`;
+        b.disabled = pos + d < 0 || pos + d >= order.length;
+        b.addEventListener('click', () => movePedal(pd.id, d));
+        mv.appendChild(b);
+      });
+      top.append(head, mv);
+      card.appendChild(top);
       if (v.on) {
         const knobs = document.createElement('div'); knobs.className = 'knobs';
         pd.knobs.forEach(([k, label, f]) => {
@@ -1611,7 +1654,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     const r = RIGS.find(x => x[0] === e.target.value); if (!r) return;
     const [id, , mode, spec] = r;
     for (const k in st.fx.p) { st.fx.p[k].on = false; if (spec[k]) Object.assign(st.fx.p[k], spec[k]); }
-    st.fx.mode = mode; st.fx.rig = id;
+    st.fx.mode = mode; st.fx.rig = id; st.fx.order = DEFAULT_ORDER.slice();
     $('haze').checked = st.fx.p.reverb.on;
     wireFx(); applyFx(); save(); renderPedals();
   });
@@ -1723,7 +1766,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     outs.forEach(o => { try { o.disconnect(); } catch (e) {} });
     let prev = fx.input;
     if (st.fx.mode === 'electric') { prev.connect(fx.pickup.in); prev = fx.pickup.out; }
-    PEDALS.forEach(p => { if (st.fx.p[p.id].on) { const s = fx.stages[p.id]; prev.connect(s.in); prev = s.out; } });
+    st.fx.order.forEach(id => { if (st.fx.p[id].on) { const s = fx.stages[id]; prev.connect(s.in); prev = s.out; } });
     prev.connect(master);
   }
   const curveCache = new Map();
