@@ -696,15 +696,20 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     const fs = idx.map(i => fr[i]), minF = Math.min(...fs), maxF = Math.max(...fs);
     const limit = minF >= 12 ? 6 : 5;
     if (maxF - minF > limit) return `It needs a stretch from fret ${minF} to fret ${maxF}: that's ${maxF - minF + 1} frets wide.`;
-    let fingers = idx.length, barre = false;
-    if (fingers > 4) {
-      const at = idx.filter(i => fr[i] === minF), a = at[0], b = at[at.length - 1];
-      let ok = at.length > 1;
-      for (let i = a; i <= b; i++) if (fr[i] === 0) ok = false;
-      if (ok) { fingers = 1 + idx.filter(i => fr[i] !== minF).length; barre = true; }
-    }
+    // one finger can bar every note at the lowest fret (index) and every note at the highest fret (pinky, like a
+    // Cerati-style high pinky bar), as long as no open string, or one fretted lower, sits under the bar
+    const barreAt = f => {
+      const at = idx.filter(i => fr[i] === f);
+      if (at.length < 2) return false;
+      for (let i = at[0]; i <= at[at.length - 1]; i++) if (fr[i] !== null && fr[i] < f) return false;
+      return true;
+    };
+    const lowBar = barreAt(minF), highBar = maxF > minF && barreAt(maxF), barre = lowBar || highBar;
+    let fingers = idx.length;
+    if (lowBar) fingers -= idx.filter(i => fr[i] === minF).length - 1;
+    if (highBar) fingers -= idx.filter(i => fr[i] === maxF).length - 1;
     // the thumb wrapped over the neck takes the low string, but then the fingers can only reach about 3 frets past it
-    const thumb = fr[0] !== null && fr[0] > 0 && fr[0] <= minF + 1 && maxF - fr[0] <= 3 && !(barre && fr[0] === minF) ? 1 : 0;
+    const thumb = fr[0] !== null && fr[0] > 0 && fr[0] <= minF + 1 && maxF - fr[0] <= 3 && !(lowBar && fr[0] === minF) && !(highBar && fr[0] === maxF) ? 1 : 0;
     if (fingers > 4 + thumb) return `It needs ${fingers} fingers on the frets${barre ? ', even with a barre' : ''}. A hand has four (plus a thumb for the low string).`;
     return null;
   }

@@ -25,7 +25,7 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   Media Session gives lock-screen controls; the direct output is restored after stop. Don't rebuild the AudioContext on
   return while a background progression is still running.
   Impossible-shape check (`unplayable`, `handCheck`): after a tap or "Set shape", if the fretted notes span more than 5 frets
-  (6 from fret 12 up) or need more than 4 fingers (a barre at the lowest fret counts as one; a thumb over the low string adds one),
+  (6 from fret 12 up) or need more than 4 fingers (a barre at the lowest fret counts as one, and so does a bar at the highest fret, e.g. Cerati's 4-6-6-8-8-8 pinky bar; a thumb over the low string adds one),
   `#octo` (inside the chord-name panel) shows `octopus.jpg` (his meme) with the reason, fading in slowly; it stays as long as
   the shape is impossible and hides when it isn't (`handCheck()` runs from `refresh()`). Switch in Display (`st.octopus`).
   He asked for this placement instead of a popup, which felt like a jumpscare.
