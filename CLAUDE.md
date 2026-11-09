@@ -26,8 +26,9 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   return while a background progression is still running.
   Impossible-shape check (`unplayable`, `handCheck`): after a tap or "Set shape", if the fretted notes span more than 5 frets
   (6 from fret 12 up) or need more than 4 fingers (a barre at the lowest fret counts as one; a thumb over the low string adds one),
-  the `#octo` popup shows `octopus.jpg` (his meme) with the reason; once per impossible streak, closes on tap/Escape/6 s,
-  switch in Display (`st.octopus`).
+  `#octo` (inside the chord-name panel) shows `octopus.jpg` (his meme) with the reason, fading in slowly; it stays as long as
+  the shape is impossible and hides when it isn't (`handCheck()` runs from `refresh()`). Switch in Display (`st.octopus`).
+  He asked for this placement instead of a popup, which felt like a jumpscare.
 - `dsharp-chart.html` — chord chart for his D# A# D# F# G# D# tuning (MIDI 39 46 51 54 56 63).
 - Live at https://irc-finds.github.io/chord-lab/ (GitHub Pages, served from the `main` branch root).
   Pushing to `main` updates the site within a minute or two.

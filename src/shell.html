@@ -240,15 +240,14 @@ select { border: 1px solid var(--line); background: var(--bg); border-radius: 9p
 
 footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(--muted); }
 
-/* the octopus: pops up when a shape needs more fingers (or more stretch) than a hand has */
-.octo { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(10, 12, 18, 0.55); cursor: pointer; }
-.octo figure { margin: 0; max-width: min(460px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6); animation: octo-pop 0.32s cubic-bezier(0.2, 1.4, 0.4, 1); }
+/* the octopus: sits under the chord name whenever the shape needs more fingers (or more stretch) than a hand has */
+.octo { margin: 14px 0 0; max-width: 380px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; animation: octo-in 1.4s ease-out; }
 .octo img { display: block; width: 100%; height: auto; }
-.octo figcaption { padding: 10px 14px 12px; font-size: 13.5px; display: grid; gap: 2px; }
-.octo figcaption b { font-family: var(--font-display); font-size: 16px; }
+.octo figcaption { padding: 8px 12px 10px; display: grid; gap: 2px; font-size: 13px; }
+.octo figcaption b { font-family: var(--font-display); font-size: 15px; }
 .octo figcaption span { color: var(--muted); font-size: 12.5px; }
-@keyframes octo-pop { from { transform: scale(0.6) rotate(-4deg); opacity: 0; } to { transform: none; opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .octo figure { animation: none; } }
+@keyframes octo-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .octo { animation-duration: 0.6s; } }
 
 @media (max-width: 860px) {
   .lab { grid-template-columns: minmax(0, 1fr); grid-template-areas: "now" "board" "find" "prog" "play" "sound" "tuning" "view" "saved"; }
@@ -280,6 +279,10 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
       <button class="play-big" id="play" type="button" aria-label="Play chord"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 0.5L9.5 5L1 9.5z"/></svg></button>
     </div>
     <div class="alts" id="alts" aria-label="Other names; tap one to use its root"></div>
+    <figure class="octo" id="octo" hidden>
+      <img id="octo-img" alt="Meme: a grinning friend with a hand on your shoulder says, “Bro please. You are not an octopus. Try leaving a note out.”" width="676" height="474">
+      <figcaption><b>That shape isn't playable</b><span id="octo-why"></span></figcaption>
+    </figure>
   </section>
 
   <section class="panel area-find" aria-labelledby="find-h">
@@ -432,7 +435,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
       </div>
     </div>
     <label class="toggle"><input type="checkbox" id="ghosts"> Show the chord's notes across the whole neck</label>
-    <label class="toggle"><input type="checkbox" id="octo-on"> Warn me when a shape is impossible to fret (you'll see)</label>
+    <label class="toggle"><input type="checkbox" id="octo-on"> Warn me when a shape is impossible to fret</label>
   </section>
 
   <section class="panel area-saved" aria-labelledby="saved-h">
@@ -441,12 +444,6 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     <div class="hint" id="saved-hint">Saved voicings keep their tuning and stay in this browser.</div>
   </section>
 </main>
-<div class="octo" id="octo" hidden role="dialog" aria-modal="true" aria-labelledby="octo-t">
-  <figure>
-    <img id="octo-img" alt="Meme: a grinning friend with a hand on your shoulder says, “Bro please. You are not an octopus. Try leaving a note out.”" width="676" height="474">
-    <figcaption><b id="octo-t">That shape isn't playable</b><span id="octo-why"></span><span>Tap anywhere to close.</span></figcaption>
-  </figure>
-</div>
 <footer>Chord names are worked out from the notes, so unusual voicings get several readings; tap one to choose the root. Sound is a synthesized plucked string. 12-string courses play an octave or unison pair.</footer>
 
 <script>
@@ -711,22 +708,16 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     if (fingers > 4 + thumb) return `It needs ${fingers} fingers on the frets${barre ? ', even with a barre' : ''}. A hand has four (plus a thumb for the low string).`;
     return null;
   }
-  let wasUnplayable = false, octoTimer = 0;
+  // shown under the chord name for as long as the current shape is impossible; fades in each time it appears
   function handCheck() {
-    const why = unplayable(st.frets);
-    if (why && !wasUnplayable && st.octopus !== false) showOcto(why);
-    wasUnplayable = !!why;
+    const why = st.octopus !== false ? unplayable(st.frets) : null, o = $('octo');
+    if (why) {
+      const img = $('octo-img');
+      if (!img.getAttribute('src')) img.src = 'octopus.jpg';
+      $('octo-why').textContent = why;
+    }
+    o.hidden = !why;
   }
-  function showOcto(why) {
-    const o = $('octo'), img = $('octo-img');
-    if (!img.getAttribute('src')) img.src = 'octopus.jpg';
-    $('octo-why').textContent = why;
-    o.hidden = false;
-    clearTimeout(octoTimer); octoTimer = setTimeout(hideOcto, 6000);
-  }
-  function hideOcto() { $('octo').hidden = true; clearTimeout(octoTimer); }
-  $('octo').addEventListener('click', hideOcto);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('octo').hidden) hideOcto(); });
 
   /* ---------- tuning editor ---------- */
   function renderPresets() {
@@ -843,7 +834,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
   $('tap-play').addEventListener('change', e => { st.tapPlay = e.target.checked; save(); });
   $('haze').addEventListener('change', e => { st.fx.p.reverb.on = e.target.checked; st.fx.rig = null; wireFx(); renderPedals(); save(); });
   $('ghosts').addEventListener('change', e => { st.ghosts = e.target.checked; save(); renderBoard(); });
-  $('octo-on').addEventListener('change', e => { st.octopus = e.target.checked; save(); });
+  $('octo-on').addEventListener('change', e => { st.octopus = e.target.checked; save(); handCheck(); });
 
   /* ---------- saved ---------- */
   function renderSaved() {
@@ -1648,7 +1639,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     $('speed-arp').hidden = (st.play === 'down' || st.play === 'up');
     $('oct-row').hidden = !inst().course;
     sliders.forEach(([id, f]) => { $(id).value = st[id]; $(id + '-o').textContent = f(st[id]); });
-    $('tap-play').checked = st.tapPlay; $('haze').checked = st.fx.p.reverb.on; $('ghosts').checked = st.ghosts; $('octo-on').checked = st.octopus !== false;
+    $('tap-play').checked = st.tapPlay; $('haze').checked = st.fx.p.reverb.on; $('ghosts').checked = st.ghosts; $('octo-on').checked = st.octopus !== false; handCheck();
     renderTop(); renderNow(); renderBoard(); renderPresets(); renderStringsEd(); renderMyTunings(); renderSaved(); renderProg();
     if (st.findQ && findFor !== st.tuning.join() + '|' + st.maxFret) runFind(st.findQ);   // tuning changed: search again
     save();
