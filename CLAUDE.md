@@ -11,6 +11,10 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   (`sub` steps per count, `pat` of D/U/P/X/- where P = palm mute), `meter` (2/4…7/4, 5/8…12/8; groups in `METERS`, tempo counts
   the denominator note), tempo and loop, played by a look-ahead scheduler on the audio clock. Chord length is `beats` (counts)
   or `bars` (follows the meter).
+  Guitar Pro export (`progressionToGp`): lazily loads alphaTab 1.8.4 from jsDelivr and writes a GP8 `.gp` with the first chord's
+  tuning; each strum step is a beat (D brush down, U top-4 strings brush up, P palm mute, X dead notes, `-` ties the last D/U or
+  rests), chord diagrams (alphaTab `Chord.strings` is highest string first), tempo in quarter notes (x/8 halves bpm), loop = repeat ×2.
+  Chords from another tuning are revoiced by `fitShape` (keeps bass + every pitch class; octave moves / dropping doubled notes allowed).
   Sound: `st.fx` = { mode: acoustic|electric, rig, p: per-pedal settings 0..1 }. Voices feed `fx.input`; `wireFx()` chains the
   pedals that are on in `st.fx.order` (user-reorderable; rigs reset it to the default comp, gate, fuzz, drive, dist, chorus, amp+cab,
   delay, reverb; the noise gate is an AudioWorklet loaded from a Blob, so it only works over http(s), not file://), `applyFx()` maps knobs to node params,

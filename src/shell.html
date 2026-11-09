@@ -231,7 +231,7 @@ select { border: 1px solid var(--line); background: var(--bg); border-radius: 9p
 .saved-item .meta { font-family: var(--font-data); font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
 .saved-item .del { border: 0; background: transparent; color: var(--muted); font-size: 18px; width: 32px; height: 32px; border-radius: 8px; }
 .saved-item .del:hover { background: var(--faint); }
-.saved-item.tun { grid-template-columns: minmax(0, 1fr) auto auto; }
+.saved-item.tun, .saved-item.prg { grid-template-columns: minmax(0, 1fr) auto auto; }
 .saved-item.tun.on { border-color: var(--accent); }
 .saved-item .ren { border: 0; background: transparent; color: var(--muted); font-size: 13px; padding: 0 8px; height: 32px; border-radius: 8px; }
 .saved-item .ren:hover { background: var(--faint); }
@@ -321,6 +321,10 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
         <input id="prog-name" type="text" maxlength="40" autocomplete="off" placeholder="Name it, e.g. Verse">
         <button class="btn primary" type="button" id="prog-save">Save</button>
       </div>
+    </div>
+    <div class="row tight">
+      <button class="btn" type="button" id="prog-gp">Download as Guitar Pro file</button>
+      <span class="hint">Tab with chord diagrams, strums, palm mutes and tempo. Opens in Guitar Pro, TuxGuitar, Songsterr and the like.</span>
     </div>
     <div class="field" id="progs-wrap">
       <span class="eyebrow">My progressions</span>
@@ -1153,7 +1157,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     const list = $('progs'); list.innerHTML = '';
     $('progs-wrap').hidden = !st.progs.length;
     st.progs.forEach((q, idx) => {
-      const item = document.createElement('div'); item.className = 'saved-item';
+      const item = document.createElement('div'); item.className = 'saved-item prg';
       const load = document.createElement('button'); load.type = 'button'; load.className = 'load';
       load.innerHTML = '<span class="nm"></span><span class="meta"></span>';
       load.querySelector('.nm').textContent = q.name;
@@ -1167,7 +1171,10 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
       });
       const del = document.createElement('button'); del.type = 'button'; del.className = 'del'; del.textContent = '×'; del.setAttribute('aria-label', 'Delete progression ' + q.name);
       del.addEventListener('click', () => { st.progs.splice(idx, 1); save(); renderProgs(); progMsg(`Deleted “${q.name}”.`); });
-      item.append(load, del); list.appendChild(item);
+      const gp = document.createElement('button'); gp.type = 'button'; gp.className = 'ren'; gp.textContent = '.gp';
+      gp.title = 'Download as a Guitar Pro file'; gp.setAttribute('aria-label', 'Download ' + q.name + ' as a Guitar Pro file');
+      gp.addEventListener('click', () => downloadGp(clone(q)));
+      item.append(load, gp, del); list.appendChild(item);
     });
   }
 
@@ -1215,6 +1222,142 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     $('prog-name').value = name; save(); renderProgs();
   }
   $('prog-save').addEventListener('click', saveProg);
+
+  /* ---------- export to Guitar Pro ---------- */
+  // Uses alphaTab (the open-source Guitar Pro library), loaded only when someone exports. Each strum step becomes a beat:
+  // ↓ all strings brushed down, ↑ the top four brushed up, PM palm-muted, ✕ dead notes, · the last strum tied (ringing) or a rest.
+  const AT_URL = 'https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.8.4/dist/alphaTab.min.js';
+  let atLoading = null;
+  function loadAlphaTab() {
+    if (window.alphaTab) return Promise.resolve();
+    return atLoading || (atLoading = new Promise((res, rej) => {
+      const sc = document.createElement('script'); sc.src = AT_URL;
+      sc.onload = () => window.alphaTab ? res() : rej(new Error('missing'));
+      sc.onerror = () => { atLoading = null; rej(new Error('blocked')); };
+      document.head.appendChild(sc);
+    }));
+  }
+  // A chord saved in another tuning or instrument: put its notes on the track's strings (each note on its own
+  // string, frets 0-24, as compact as possible). Returns frets for tuning T, low string first.
+  function fitShape(c, T) {
+    if (c.tuning.length === T.length && c.tuning.every((x, i) => x === T[i])) return { frets: c.frets.slice(), moved: false };
+    // Keep the bass note and every distinct note of the chord. Any other note may move up an octave, and a note that's
+    // doubled elsewhere may be left out, the way a guitarist would revoice the chord for different strings.
+    const ps = c.frets.map((f, i) => f === null ? null : c.tuning[i] + f).filter(x => x !== null).sort((a, b) => a - b);
+    const frets = T.map(() => null);
+    if (!ps.length) return { frets, moved: true };
+    let bass = ps[0]; while (bass < T[0]) bass += 12;
+    const pcCount = {}; ps.forEach(x => { pcCount[x % 12] = (pcCount[x % 12] || 0) + 1; });
+    const need = new Set(ps.map(x => x % 12));
+    let best = null; const used = new Array(T.length).fill(false), cur = [];
+    (function dfs(k, cost, omitted) {
+      if (best && cost >= best.cost) return;
+      if (k === ps.length) {
+        const have = new Set(cur.map(a => a.p % 12)); if ([...need].some(x => !have.has(x))) return;
+        const fr = cur.map(a => a.f).filter(f => f > 0), span = fr.length > 1 ? Math.max(...fr) - Math.min(...fr) : 0;
+        const total = cost + span * 4 + (span > 4 ? (span - 4) * 25 : 0) + cur.reduce((x, a) => x + a.f, 0) * 0.1;
+        if (!best || total < best.cost) best = { cost: total, a: cur.slice() };
+        return;
+      }
+      const base = k === 0 ? bass : ps[k];
+      const opts = k === 0 ? [[base, 0]] : [[base, 0], [base + 12, 3], [base - 12, 3]];
+      for (const [pp, extra] of opts) for (let s = 0; s < T.length; s++) {
+        const f = pp - T[s]; if (used[s] || f < 0 || f > 24 || (k > 0 && pp < bass)) continue;
+        used[s] = true; cur.push({ s, f, p: pp }); dfs(k + 1, cost + extra, omitted); cur.pop(); used[s] = false;
+      }
+      if (k > 0 && pcCount[ps[k] % 12] > 1) { pcCount[ps[k] % 12]--; dfs(k + 1, cost + 1.5, omitted + 1); pcCount[ps[k] % 12]++; }   // leave out a doubled note
+    })(0, 0, 0);
+    if (best) best.a.forEach(a => { frets[a.s] = a.f; });
+    else { const s0 = T.findIndex(t => bass - t >= 0 && bass - t <= 24); if (s0 >= 0) frets[s0] = bass - T[s0]; }   // nothing fits: keep at least the bass note
+    return { frets, moved: true };
+  }
+  function gpProgram(instKey) {
+    if (instKey === 'b4' || instKey === 'b5') return 33;
+    if (st.fx.mode !== 'electric') return 25;
+    const P2 = st.fx.p;
+    if (P2.dist.on || P2.fuzz.on) return 30;
+    if (P2.drive.on || (P2.amp.on && P2.amp.gain >= 0.5)) return 29;
+    return 27;
+  }
+  function progressionToGp(p) {
+    const A = window.alphaTab, M = A.model, settings = new A.Settings();
+    const first = p.chords[0], T = first.tuning.slice(), I = INSTRUMENTS[first.inst];
+    const meter = METERS[p.meter] ? p.meter : '4/4', counts = countsOf(meter), den = Number(meter.split('/')[1]), sub = p.sub;
+    const barSteps = counts * sub;
+    // the strum timeline, exactly as playback walks it (the pattern keeps its place in the bar across chord changes)
+    const steps = []; let bt = 0;
+    p.chords.forEach((c, ci) => {
+      const len = (c.bars ? c.bars * counts : c.beats) * sub;
+      for (let k = 0; k < len; k++) { steps.push({ ci, ch: p.pat[bt % barSteps] || '-', first: k === 0 }); bt++; }
+    });
+    const realSteps = steps.length;
+    while (steps.length % barSteps) steps.push({ ci: -1, ch: '-' });
+    const shapes = p.chords.map(c => fitShape(c, T));
+    const score = new M.Score();
+    score.title = p.name || 'Chord Lab progression'; score.tab = 'Chord Lab';
+    const qbpm = Math.round(den === 8 ? p.bpm / 2 : p.bpm);   // Guitar Pro counts tempo in quarter notes
+    score.tempo = qbpm;
+    const track = new M.Track();
+    track.name = p.name || I.label.replace(/^./, ch => ch.toUpperCase());
+    track.playbackInfo.program = gpProgram(first.inst); track.playbackInfo.primaryChannel = 0; track.playbackInfo.secondaryChannel = 1;
+    score.addTrack(track);
+    const staff = track.staves[0] || (() => { const x = new M.Staff(); track.addStaff(x); return x; })();
+    staff.showTablature = true; staff.showStandardNotation = true;
+    staff.stringTuning.tunings = T.slice().reverse();   // Guitar Pro lists the highest string first
+    // chord diagrams (one per distinct shape)
+    const diag = new Map();
+    const chordIds = p.chords.map((c, i) => {
+      const fr = shapes[i].frets, name = nameOf(c), key = name + '|' + fr.join(',');
+      if (!diag.has(key)) {
+        const ch = new M.Chord(); ch.name = name;
+        ch.strings = fr.map(f => f === null ? -1 : f).reverse();
+        const pos = fr.filter(f => f !== null && f > 0); ch.firstFret = pos.length && Math.max(...pos) > 5 ? Math.min(...pos) : 1;
+        const id = 'c' + diag.size; staff.addChord(id, ch); diag.set(key, id);
+      }
+      return diag.get(key);
+    });
+    const base = sub === 3 ? den * 2 : den * sub;
+    let last = null;
+    for (let b = 0; b < steps.length / barSteps; b++) {
+      const mb = new M.MasterBar();
+      mb.timeSignatureNumerator = counts; mb.timeSignatureDenominator = den;
+      if (b === 0) { const a = new M.Automation(); a.type = M.AutomationType.Tempo; a.value = qbpm; a.ratioPosition = 0; mb.tempoAutomations.push(a); }
+      if (p.loop && realSteps === steps.length) { if (b === 0) mb.isRepeatStart = true; if (b === steps.length / barSteps - 1) mb.repeatCount = 2; }
+      score.addMasterBar(mb);
+      const bar = new M.Bar(); staff.addBar(bar); const voice = new M.Voice(); bar.addVoice(voice);
+      steps.slice(b * barSteps, (b + 1) * barSteps).forEach(stp => {
+        const beat = new M.Beat(); beat.duration = base;
+        if (sub === 3) { beat.tupletNumerator = 3; beat.tupletDenominator = 2; }
+        const fr = stp.ci >= 0 ? shapes[stp.ci].frets : null;
+        if (stp.first && stp.ci >= 0) beat.chordId = chordIds[stp.ci];
+        const strs = fr ? fr.map((f, i) => f === null ? null : i).filter(i => i !== null) : [];
+        const add = (list, fx) => list.forEach(i => { const n = new M.Note(); n.string = i + 1; n.fret = fr[i]; fx && fx(n); beat.addNote(n); });
+        if (fr && stp.ch === 'D') { add(strs); beat.brushType = M.BrushType.BrushDown; last = { fr, strs }; }
+        else if (fr && stp.ch === 'U') { const top = strs.slice(-Math.min(strs.length, 4)); add(top); beat.brushType = M.BrushType.BrushUp; last = { fr, strs: top }; }
+        else if (fr && stp.ch === 'P') { add(strs, n => { n.isPalmMute = true; }); last = null; }
+        else if (fr && stp.ch === 'X') { add(strs, n => { n.isDead = true; }); last = null; }
+        else if (last) { last.strs.forEach(i => { const n = new M.Note(); n.string = i + 1; n.fret = last.fr[i]; n.isTieDestination = true; beat.addNote(n); }); }
+        voice.addBeat(beat);
+      });
+    }
+    score.finish(settings);
+    return { bytes: new A.exporter.Gp7Exporter().export(score, settings), moved: shapes.some(x => x.moved) };
+  }
+  async function downloadGp(p) {
+    if (!p.chords.length) { progMsg('Add some chords first.'); return; }
+    progMsg('Making the Guitar Pro file…');
+    try { await loadAlphaTab(); }
+    catch (e) { progMsg('The Guitar Pro writer didn\'t load. Check your connection and try again.'); return; }
+    let out;
+    try { out = progressionToGp(p); }
+    catch (e) { progMsg('Something went wrong making the file. Try again, or tell Claude what you had in the progression.'); return; }
+    const name = ((p.name || 'Chord Lab progression').replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'Chord Lab progression') + '.gp';
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([out.bytes], { type: 'application/octet-stream' })); a.download = name;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    const first = p.chords[0];
+    progMsg(`Downloaded “${name}”.` + (out.moved ? ` Chords saved in another tuning were re-fingered for ${tuningLabel(first.inst, first.tuning, first.pairs) || first.tuning.map(nm).join(' ')}.` : ''));
+  }
+  $('prog-gp').addEventListener('click', () => downloadGp(clone(Object.assign({}, P(), { name: $('prog-name').value.trim() || P().name }))));
   $('prog-name').addEventListener('keydown', e => { if (e.key === 'Enter') saveProg(); });
   $('prog-play').addEventListener('click', () => { if (pl) { stopProg(); return; } startProg(); });
 
