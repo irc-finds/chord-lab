@@ -240,6 +240,16 @@ select { border: 1px solid var(--line); background: var(--bg); border-radius: 9p
 
 footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(--muted); }
 
+/* the octopus: pops up when a shape needs more fingers (or more stretch) than a hand has */
+.octo { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(10, 12, 18, 0.55); cursor: pointer; }
+.octo figure { margin: 0; max-width: min(460px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6); animation: octo-pop 0.32s cubic-bezier(0.2, 1.4, 0.4, 1); }
+.octo img { display: block; width: 100%; height: auto; }
+.octo figcaption { padding: 10px 14px 12px; font-size: 13.5px; display: grid; gap: 2px; }
+.octo figcaption b { font-family: var(--font-display); font-size: 16px; }
+.octo figcaption span { color: var(--muted); font-size: 12.5px; }
+@keyframes octo-pop { from { transform: scale(0.6) rotate(-4deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .octo figure { animation: none; } }
+
 @media (max-width: 860px) {
   .lab { grid-template-columns: minmax(0, 1fr); grid-template-areas: "now" "board" "find" "prog" "play" "sound" "tuning" "view" "saved"; }
   .area-now { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 6; box-shadow: 0 6px 16px -10px rgba(0,0,0,0.35); }
@@ -422,6 +432,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
       </div>
     </div>
     <label class="toggle"><input type="checkbox" id="ghosts"> Show the chord's notes across the whole neck</label>
+    <label class="toggle"><input type="checkbox" id="octo-on"> Warn me when a shape is impossible to fret (you'll see)</label>
   </section>
 
   <section class="panel area-saved" aria-labelledby="saved-h">
@@ -430,6 +441,12 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     <div class="hint" id="saved-hint">Saved voicings keep their tuning and stay in this browser.</div>
   </section>
 </main>
+<div class="octo" id="octo" hidden role="dialog" aria-modal="true" aria-labelledby="octo-t">
+  <figure>
+    <img id="octo-img" alt="Meme: a grinning friend with a hand on your shoulder says, “Bro please. You are not an octopus. Try leaving a note out.”" width="676" height="474">
+    <figcaption><b id="octo-t">That shape isn't playable</b><span id="octo-why"></span><span>Tap anywhere to close.</span></figcaption>
+  </figure>
+</div>
 <footer>Chord names are worked out from the notes, so unusual voicings get several readings; tap one to choose the root. Sound is a synthesized plucked string. 12-string courses play an octave or unison pair.</footer>
 
 <script>
@@ -481,7 +498,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
   const fresh = () => ({
     inst: 'g6', tuning: [39,46,51,54,56,63], pairs: defaultPairs(6), frets: [0,0,0,6,6,0],
     mode: 'notes', spell: 'sharp', maxFret: 15, ghosts: false, play: 'down', spread: 28, bpm: 132, ring: 3.2,
-    tapPlay: true, bgPlay: true, haze: true, octMix: 110, findQ: '', rootPick: 3, saved: [], myTunings: [],
+    tapPlay: true, bgPlay: true, octopus: true, haze: true, octMix: 110, findQ: '', rootPick: 3, saved: [], myTunings: [],
     prog: freshProg(), progs: []
   });
   const DEFAULT_ORDER = ['comp', 'gate', 'fuzz', 'drive', 'dist', 'chorus', 'amp', 'delay', 'reverb'];
@@ -669,7 +686,47 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     st.rootPick = st.rootPick; // keep chosen root when it still exists
     refresh();
     if (st.tapPlay && st.frets[s] !== null) pluckOne(s);
+    handCheck();
   }
+
+  /* ---------- can a hand actually fret this? ---------- */
+  // More forgiving than the chord finder (which looks for comfortable shapes): four fingers, the index can barre the
+  // lowest fret (no open string under the barre), the thumb can wrap over to the lowest string, and a stretch of up to
+  // 5 frets (6 from the 12th fret up, where frets are narrower).
+  function unplayable(fr) {
+    const idx = fr.map((f, i) => f !== null && f > 0 ? i : null).filter(i => i !== null);
+    if (!idx.length) return null;
+    const fs = idx.map(i => fr[i]), minF = Math.min(...fs), maxF = Math.max(...fs);
+    const limit = minF >= 12 ? 6 : 5;
+    if (maxF - minF > limit) return `It needs a stretch from fret ${minF} to fret ${maxF}: that's ${maxF - minF + 1} frets wide.`;
+    let fingers = idx.length, barre = false;
+    if (fingers > 4) {
+      const at = idx.filter(i => fr[i] === minF), a = at[0], b = at[at.length - 1];
+      let ok = at.length > 1;
+      for (let i = a; i <= b; i++) if (fr[i] === 0) ok = false;
+      if (ok) { fingers = 1 + idx.filter(i => fr[i] !== minF).length; barre = true; }
+    }
+    // the thumb wrapped over the neck takes the low string, but then the fingers can only reach about 3 frets past it
+    const thumb = fr[0] !== null && fr[0] > 0 && fr[0] <= minF + 1 && maxF - fr[0] <= 3 && !(barre && fr[0] === minF) ? 1 : 0;
+    if (fingers > 4 + thumb) return `It needs ${fingers} fingers on the frets${barre ? ', even with a barre' : ''}. A hand has four (plus a thumb for the low string).`;
+    return null;
+  }
+  let wasUnplayable = false, octoTimer = 0;
+  function handCheck() {
+    const why = unplayable(st.frets);
+    if (why && !wasUnplayable && st.octopus !== false) showOcto(why);
+    wasUnplayable = !!why;
+  }
+  function showOcto(why) {
+    const o = $('octo'), img = $('octo-img');
+    if (!img.getAttribute('src')) img.src = 'octopus.jpg';
+    $('octo-why').textContent = why;
+    o.hidden = false;
+    clearTimeout(octoTimer); octoTimer = setTimeout(hideOcto, 6000);
+  }
+  function hideOcto() { $('octo').hidden = true; clearTimeout(octoTimer); }
+  $('octo').addEventListener('click', hideOcto);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('octo').hidden) hideOcto(); });
 
   /* ---------- tuning editor ---------- */
   function renderPresets() {
@@ -757,7 +814,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     if (mx > 24) { err.hidden = false; err.textContent = 'Frets go up to 24.'; return; }
     err.hidden = true; st.frets = out;
     if (mx > st.maxFret) st.maxFret = mx > 15 ? 24 : 15;
-    refresh(); playChord();
+    refresh(); playChord(); handCheck();
   }
 
   /* ---------- board tools ---------- */
@@ -786,6 +843,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
   $('tap-play').addEventListener('change', e => { st.tapPlay = e.target.checked; save(); });
   $('haze').addEventListener('change', e => { st.fx.p.reverb.on = e.target.checked; st.fx.rig = null; wireFx(); renderPedals(); save(); });
   $('ghosts').addEventListener('change', e => { st.ghosts = e.target.checked; save(); renderBoard(); });
+  $('octo-on').addEventListener('change', e => { st.octopus = e.target.checked; save(); });
 
   /* ---------- saved ---------- */
   function renderSaved() {
@@ -1590,7 +1648,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     $('speed-arp').hidden = (st.play === 'down' || st.play === 'up');
     $('oct-row').hidden = !inst().course;
     sliders.forEach(([id, f]) => { $(id).value = st[id]; $(id + '-o').textContent = f(st[id]); });
-    $('tap-play').checked = st.tapPlay; $('haze').checked = st.fx.p.reverb.on; $('ghosts').checked = st.ghosts;
+    $('tap-play').checked = st.tapPlay; $('haze').checked = st.fx.p.reverb.on; $('ghosts').checked = st.ghosts; $('octo-on').checked = st.octopus !== false;
     renderTop(); renderNow(); renderBoard(); renderPresets(); renderStringsEd(); renderMyTunings(); renderSaved(); renderProg();
     if (st.findQ && findFor !== st.tuning.join() + '|' + st.maxFret) runFind(st.findQ);   // tuning changed: search again
     save();
