@@ -949,8 +949,18 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
   function chordNow(beats) {
     return { inst: st.inst, tuning: st.tuning.slice(), pairs: st.pairs.slice(), frets: st.frets.slice(), rootPick: current ? current.root : null, beats };
   }
+  // 6- and 12-string share the same strings and frets, so a chord recorded on one plays on whichever of the
+  // two is selected now. Other instruments have different string counts, so those chords keep their own.
+  const SWAPPABLE = ['g6', 'g12'];
+  const instFor = c => SWAPPABLE.includes(c.inst) && SWAPPABLE.includes(st.inst) ? st.inst : c.inst;
+  function pairsFor(c, ik) {
+    if (!INSTRUMENTS[ik].course) return defaultPairs(INSTRUMENTS[ik].n);
+    if (c.inst === ik && Array.isArray(c.pairs) && c.pairs.length === c.tuning.length) return c.pairs;
+    return st.inst === ik && st.pairs.length === c.tuning.length ? st.pairs : defaultPairs(INSTRUMENTS[ik].n);
+  }
   function putOnNeck(c) {
-    st.inst = c.inst; st.tuning = c.tuning.slice(); st.pairs = (c.pairs || defaultPairs(INSTRUMENTS[c.inst].n)).slice();
+    const ik = instFor(c);
+    st.pairs = pairsFor(c, ik).slice(); st.inst = ik; st.tuning = c.tuning.slice();
     st.frets = c.frets.slice(); st.rootPick = c.rootPick ?? null;
     const mx = Math.max(0, ...st.frets.filter(f => f !== null)); if (mx > st.maxFret) st.maxFret = mx > 15 ? 24 : 15;
     refresh();
@@ -1143,7 +1153,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
   function strum(c, ch, t, stepSec, i, sub) {
     const idx = c.frets.map((f, s) => f === null ? null : s).filter(s => s !== null);
     if (!idx.length) return;
-    const course = INSTRUMENTS[c.inst].course;
+    const ik = instFor(c), course = INSTRUMENTS[ik].course, pairs = pairsFor(c, ik);
     const base = 0.24 / Math.sqrt(Math.max(1, idx.length / 3));
     let order, gain;
     if (ch === 'U') { order = idx.slice(-Math.min(idx.length, 4)).reverse(); gain = base * 0.72; }   // upstrokes mostly catch the thin strings
@@ -1159,7 +1169,7 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     const per = Math.min(st.spread, stepSec * 1000 * 0.55 / order.length) / 1000;
     order.forEach((s, k) => {
       const m = c.tuning[s] + c.frets[s], tt = t + k * per;
-      const vs = course ? courseVoices(m, (c.pairs || [])[s] === 'oct', tt, gain, ch === 'U') : [voice(m, tt, gain)];
+      const vs = course ? courseVoices(m, pairs[s] === 'oct', tt, gain, ch === 'U') : [voice(m, tt, gain)];
       if (ch === 'X') vs.forEach(v => fadeAt(v, tt + 0.03));
       else vs.forEach(v => { v.s = s; v.occ = pl.occ; pl.live.push(v); });
     });
