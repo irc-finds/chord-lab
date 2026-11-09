@@ -6,7 +6,9 @@ Explain changes in plain words, never ask him to run commands, and push the chan
 ## What it is
 - `index.html` — Alt-Tuning Chord Lab. Tap frets to name chords in any tuning; "How do I play…" turns a chord name into
   shapes; strum or arpeggio playback with a Karplus-Strong plucked-string synth; 6-, 7- and 12-string guitar and 4- and 5-string bass;
-  named saved tunings and voicings (stored in the browser's localStorage under the key `chord-lab`).
+  named saved tunings and voicings (stored in the browser's localStorage under the key `chord-lab`);
+  progressions (`st.prog` working copy, `st.progs` saved): chords with lengths in beats, a one-bar strum pattern
+  (`sub` steps per beat, `pat` of D/U/X/-), tempo and loop, played by a look-ahead scheduler on the audio clock.
 - `dsharp-chart.html` — chord chart for his D# A# D# F# G# D# tuning (MIDI 39 46 51 54 56 63).
 - Live at https://irc-finds.github.io/chord-lab/ (GitHub Pages, served from the `main` branch root).
   Pushing to `main` updates the site within a minute or two.

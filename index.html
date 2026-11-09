@@ -64,7 +64,7 @@ h2 { font-size: 17px; }
 .lab {
   max-width: 1120px; margin: 0 auto; display: grid; gap: 16px;
   grid-template-columns: minmax(300px, 440px) minmax(0, 1fr);
-  grid-template-areas: "board now" "board find" "board play" "board tuning" "board view" "board saved" "board .";
+  grid-template-areas: "board now" "board find" "board prog" "board play" "board tuning" "board view" "board saved" "board .";
   align-items: start;
 }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 12px; min-width: 0; }
@@ -74,6 +74,32 @@ h2 { font-size: 17px; }
 .area-view { grid-area: view; }
 .area-saved { grid-area: saved; }
 .area-find { grid-area: find; }
+.area-prog { grid-area: prog; }
+
+/* progression */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
+.chip { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); padding: 1px 1px 1px 0; min-width: 0; max-width: 100%; flex-wrap: nowrap; }
+.chip .cn { border: 0; background: transparent; padding: 4px 4px 4px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+.chip select { flex: none; border: 0; background: transparent; font-size: 12px; padding: 2px 2px; color: var(--muted); }
+.chip .x { flex: none; border: 0; background: transparent; color: var(--muted); font-size: 16px; width: 28px; height: 28px; border-radius: 8px; }
+.chip .x:hover { background: var(--faint); }
+.chip.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.chip.playing { background: var(--root); border-color: var(--root); color: var(--on-root); }
+.chip.playing select, .chip.playing .x { color: var(--on-root); }
+.chip select option { color: var(--ink); background: var(--surface); }
+.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.beat { display: grid; grid-template-columns: repeat(var(--sub), minmax(0, 1fr)); gap: 3px; }
+.step { border: 1px solid var(--line); background: var(--bg); border-radius: 7px; height: 44px; padding: 3px 0 2px; display: grid; grid-template-rows: 1fr auto; place-items: center; line-height: 1; touch-action: manipulation; }
+.step .g { font-size: 18px; font-weight: 700; }
+.step .c { font-family: var(--font-data); font-size: 9.5px; color: var(--muted); }
+.step.D, .step.U { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.step.D .c, .step.U .c { color: inherit; opacity: 0.6; }
+.step.X { color: var(--accent); border-color: var(--accent); }
+.step.R .g { color: var(--muted); font-weight: 400; }
+.step.hit { background: var(--root); border-color: var(--root); color: var(--on-root); }
+.step.hit .c { color: inherit; }
+.tight { gap: 6px; }
+@media (max-width: 520px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 /* chord finder */
 .find-read { font-family: var(--font-data); font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: baseline; }
@@ -193,7 +219,7 @@ select { border: 1px solid var(--line); background: var(--bg); border-radius: 9p
 footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(--muted); }
 
 @media (max-width: 860px) {
-  .lab { grid-template-columns: minmax(0, 1fr); grid-template-areas: "now" "board" "find" "play" "tuning" "view" "saved"; }
+  .lab { grid-template-columns: minmax(0, 1fr); grid-template-areas: "now" "board" "find" "prog" "play" "tuning" "view" "saved"; }
   .area-now { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 6; box-shadow: 0 6px 16px -10px rgba(0,0,0,0.35); }
   .chord-name { font-size: 30px; }
   .alts { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
@@ -237,6 +263,46 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
     <div class="row" id="find-more-row" hidden><button class="btn" type="button" id="find-more">Show more</button><span class="hint" id="find-count"></span></div>
     <div class="hint">Lowercase <b>b</b> = flat (Bb, addb6, m7b5); capital <b>B</b> = the note B (Si), e.g. C/B. Spanish names work too: Sib, Fa#m7, Re/Fa#. Searches the current tuning; tap a shape to put it on the neck and hear it.</div>
     <div class="find-ex" id="find-ex"></div>
+  </section>
+
+  <section class="panel area-prog" aria-labelledby="prog-h">
+    <div class="row" style="justify-content:space-between">
+      <h2 id="prog-h">Progression</h2>
+      <div class="row tight">
+        <label class="toggle"><input type="checkbox" id="prog-loop"> Loop</label>
+        <button class="btn primary" type="button" id="prog-play">▶ Play</button>
+      </div>
+    </div>
+    <div class="chips" id="prog-chips" aria-label="Chords in the progression"></div>
+    <div class="row tight">
+      <button class="btn" type="button" id="prog-add">+ Add chord on neck</button>
+      <button class="btn" type="button" id="prog-replace">Replace selected</button>
+      <button class="btn" type="button" id="prog-left" aria-label="Move selected chord earlier">←</button>
+      <button class="btn" type="button" id="prog-right" aria-label="Move selected chord later">→</button>
+      <button class="btn" type="button" id="prog-new">New</button>
+    </div>
+    <div class="hint" id="prog-msg" role="status"></div>
+    <div class="slider-row"><label for="prog-bpm">Tempo</label><input type="range" id="prog-bpm" min="40" max="220" step="1"><output id="prog-bpm-o"></output></div>
+    <div class="field">
+      <span class="eyebrow">Strum pattern · one bar of 4/4</span>
+      <div class="row tight">
+        <select id="prog-preset" aria-label="Strum pattern preset"></select>
+        <div class="seg" id="seg-sub" role="group" aria-label="Note value"><button type="button" data-v="1">Quarters</button><button type="button" data-v="2">8ths</button><button type="button" data-v="3">Triplets</button><button type="button" data-v="4">16ths</button></div>
+      </div>
+    </div>
+    <div class="steps" id="prog-steps"></div>
+    <div class="hint">Tap a box to change it: <b>↓</b> downstroke, <b>↑</b> upstroke, <b>✕</b> muted chuck, <b>·</b> rest (the chord keeps ringing). Tap a chord above to select it and see it on the neck.</div>
+    <div class="field">
+      <label class="eyebrow" for="prog-name">Save this progression</label>
+      <div class="text-in">
+        <input id="prog-name" type="text" maxlength="40" autocomplete="off" placeholder="Name it, e.g. Verse">
+        <button class="btn primary" type="button" id="prog-save">Save</button>
+      </div>
+    </div>
+    <div class="field" id="progs-wrap">
+      <span class="eyebrow">My progressions</span>
+      <div class="saved-list" id="progs"></div>
+    </div>
   </section>
 
   <section class="panel area-play" aria-labelledby="play-h">
@@ -679,13 +745,19 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
   const fresh = () => ({
     inst: 'g6', tuning: [39,46,51,54,56,63], pairs: defaultPairs(6), frets: [0,0,0,6,6,0],
     mode: 'notes', spell: 'sharp', maxFret: 15, ghosts: false, play: 'down', spread: 28, bpm: 132, ring: 3.2,
-    tapPlay: true, haze: true, octMix: 110, findQ: '', rootPick: 3, saved: [], myTunings: []
+    tapPlay: true, haze: true, octMix: 110, findQ: '', rootPick: 3, saved: [], myTunings: [],
+    prog: freshProg(), progs: []
   });
+  function freshProg() { return { name: '', chords: [], sub: 2, pat: 'D-DU-UDU', bpm: 90, loop: true }; }
+  const okProg = p => p && Array.isArray(p.chords) && [1, 2, 3, 4].includes(p.sub) && typeof p.pat === 'string' && p.pat.length === 4 * p.sub
+    && p.chords.every(c => INSTRUMENTS[c.inst] && Array.isArray(c.frets) && Array.isArray(c.tuning) && c.frets.length === c.tuning.length);
   let st = fresh();
   try {
     const raw = JSON.parse(localStorage.getItem('chord-lab') || 'null');
     if (raw && INSTRUMENTS[raw.inst] && Array.isArray(raw.tuning) && raw.tuning.length === INSTRUMENTS[raw.inst].n) st = Object.assign(fresh(), raw);
   } catch (e) {}
+  if (!okProg(st.prog)) st.prog = freshProg();
+  st.progs = Array.isArray(st.progs) ? st.progs.filter(okProg) : [];
   const save = () => { try { localStorage.setItem('chord-lab', JSON.stringify(st)); } catch (e) {} };
 
   const $ = id => document.getElementById(id);
@@ -1143,6 +1215,285 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     $('find-ex').appendChild(b);
   });
 
+  /* ---------- progression ---------- */
+  // A progression is a list of chords (each keeps its own instrument and tuning, like saved voicings),
+  // each lasting some beats, strummed with a one-bar pattern. Pattern = 4 × sub characters:
+  // D down, U up, X muted chuck, - rest. sub = steps per beat (1 quarters, 2 eighths, 3 triplets, 4 sixteenths).
+  const PATTERNS = [
+    ['Folk / pop  ↓ ↓↑ ↑↓↑', 2, 'D-DU-UDU'],
+    ['Straight 8ths  ↓↑↓↑', 2, 'DUDUDUDU'],
+    ['8th downstrokes (punk)', 2, 'DDDDDDDD'],
+    ['Quarter notes', 1, 'DDDD'],
+    ['One strum per bar', 1, 'D---'],
+    ['Two strums per bar', 1, 'D-D-'],
+    ['Offbeats (ska / reggae)', 2, '-U-U-U-U'],
+    ['Shuffle (triplets)', 3, 'D-UD-UD-UD-U'],
+    ['Triplet gallop', 3, 'DUDUDUDUDUDU'],
+    ['Straight 16ths', 4, 'DUDUDUDUDUDUDUDU'],
+    ['16ths with chucks on 2 and 4', 4, 'DUDUXUDUDUDUXUDU'],
+    ['16th groove', 4, 'D-DUX-DU-UDUX-DU']
+  ];
+  const LENGTHS = [[1, '1 beat'], [2, '2 beats'], [4, '1 bar'], [8, '2 bars'], [16, '4 bars']];
+  const GLYPH = { D: '↓', U: '↑', X: '✕', '-': '·' };
+  const SAY = { D: 'downstroke', U: 'upstroke', X: 'muted chuck', '-': 'rest' };
+  const COUNTS = { 1: [''], 2: ['', '&'], 3: ['', '&', 'a'], 4: ['', 'e', '&', 'a'] };
+  const TPB = 12;               // timing ticks per beat (divisible by 1, 2, 3 and 4)
+  let pl = null, progSel = -1;  // pl = what's playing right now; progSel = selected chip
+
+  const P = () => st.prog;
+  const clone = o => JSON.parse(JSON.stringify(o));
+  function nameOf(c) {
+    const ms = c.frets.map((f, i) => f === null ? null : c.tuning[i] + f).filter(m => m !== null);
+    if (!ms.length) return '—';
+    const pcs = [...new Set(ms.map(m => m % 12))];
+    if (pcs.length === 1) return nm(pcs[0]);
+    if (pcs.length === 2) {
+      const lo = Math.min(...ms), other = ms.find(m => m % 12 !== lo % 12);
+      return ((other - lo) % 12 + 12) % 12 === 7 ? nm(lo) + '5' : nm(lo) + ' + ' + nm(other);
+    }
+    const cs = candidates(ms);
+    const pick = (c.rootPick !== null && c.rootPick !== undefined && (cs.find(x => x.root === c.rootPick && !x.upper) || cs.find(x => x.root === c.rootPick))) || cs[0];
+    return pick ? fmt(pick) : '?';
+  }
+  function chordNow(beats) {
+    return { inst: st.inst, tuning: st.tuning.slice(), pairs: st.pairs.slice(), frets: st.frets.slice(), rootPick: current ? current.root : null, beats };
+  }
+  function putOnNeck(c) {
+    st.inst = c.inst; st.tuning = c.tuning.slice(); st.pairs = (c.pairs || defaultPairs(INSTRUMENTS[c.inst].n)).slice();
+    st.frets = c.frets.slice(); st.rootPick = c.rootPick ?? null;
+    const mx = Math.max(0, ...st.frets.filter(f => f !== null)); if (mx > st.maxFret) st.maxFret = mx > 15 ? 24 : 15;
+    refresh();
+  }
+  const progMsg = t => { $('prog-msg').textContent = t; };
+
+  function renderProg() {
+    const p = P();
+    $('prog-loop').checked = p.loop;
+    $('prog-play').textContent = pl ? '■ Stop' : '▶ Play';
+    $('prog-play').setAttribute('aria-label', pl ? 'Stop the progression' : 'Play the progression');
+    if (progSel >= p.chords.length) progSel = p.chords.length - 1;
+    const box = $('prog-chips'); box.innerHTML = '';
+    if (!p.chords.length) { const e = document.createElement('div'); e.className = 'hint'; e.textContent = 'No chords yet. Put a chord on the neck (tap frets, or pick a shape above) and tap “Add chord on neck”.'; box.appendChild(e); }
+    p.chords.forEach((c, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'chip' + (i === progSel ? ' sel' : '') + (pl && pl.shown === i ? ' playing' : '');
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'cn'; b.textContent = nameOf(c);
+      b.title = c.frets.map(f => f === null ? 'x' : f).join('-');
+      b.setAttribute('aria-pressed', String(i === progSel));
+      b.addEventListener('click', () => {
+        progSel = i;
+        if (pl) { renderProg(); return; }
+        putOnNeck(c); playChord();
+      });
+      const sel = document.createElement('select'); sel.setAttribute('aria-label', 'Length of ' + b.textContent);
+      LENGTHS.forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.appendChild(o); });
+      if (!LENGTHS.some(([v]) => v === c.beats)) c.beats = 4;
+      sel.value = String(c.beats);
+      sel.addEventListener('change', () => { c.beats = Number(sel.value); save(); });
+      const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove ' + b.textContent);
+      x.addEventListener('click', () => { p.chords.splice(i, 1); if (progSel > i || progSel === p.chords.length) progSel--; if (!p.chords.length && pl) stopProg(); save(); renderProg(); });
+      chip.append(b, sel, x); box.appendChild(chip);
+    });
+    const has = progSel >= 0 && progSel < p.chords.length;
+    $('prog-replace').disabled = !has; $('prog-left').disabled = !has || progSel === 0; $('prog-right').disabled = !has || progSel === p.chords.length - 1;
+    $('prog-new').disabled = !p.chords.length;
+    $('prog-play').disabled = !p.chords.length && !pl;
+    $('prog-bpm').value = p.bpm; $('prog-bpm-o').textContent = p.bpm + ' bpm';
+    const pre = $('prog-preset'); pre.innerHTML = '';
+    const cu = document.createElement('option'); cu.value = ''; cu.textContent = 'Custom pattern'; pre.appendChild(cu);
+    PATTERNS.forEach(([name], i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = name; pre.appendChild(o); });
+    const mi = PATTERNS.findIndex(([, s, pat]) => s === p.sub && pat === p.pat);
+    pre.value = mi >= 0 ? String(mi) : '';
+    syncSeg('seg-sub', p.sub);
+    renderSteps();
+    renderProgs();
+  }
+  function renderSteps() {
+    const p = P(), box = $('prog-steps'); box.innerHTML = '';
+    for (let bt = 0; bt < 4; bt++) {
+      const beat = document.createElement('div'); beat.className = 'beat'; beat.style.setProperty('--sub', p.sub);
+      for (let k = 0; k < p.sub; k++) {
+        const i = bt * p.sub + k, ch = p.pat[i] || '-', count = COUNTS[p.sub][k] || String(bt + 1);
+        const b = document.createElement('button'); b.type = 'button';
+        b.className = 'step ' + (ch === '-' ? 'R' : ch) + (pl && pl.step === i ? ' hit' : '');
+        b.dataset.i = i;
+        b.innerHTML = '<span class="g"></span><span class="c"></span>';
+        b.querySelector('.g').textContent = GLYPH[ch]; b.querySelector('.c').textContent = count;
+        b.setAttribute('aria-label', `Beat ${bt + 1}${k ? ' ' + count : ''}: ${SAY[ch]}`);
+        b.addEventListener('click', () => cycleStep(i));
+        beat.appendChild(b);
+      }
+      box.appendChild(beat);
+    }
+  }
+  function markStep() {
+    document.querySelectorAll('#prog-steps .step').forEach(b => b.classList.toggle('hit', !!pl && Number(b.dataset.i) === pl.step));
+  }
+  function cycleStep(i) {
+    const p = P();
+    // on a real guitar the hand swings down on the beat and up in between, so offer that direction first
+    const nat = p.sub === 1 ? 'D' : (i % 2 === 0 ? 'D' : 'U'), other = nat === 'D' ? 'U' : 'D';
+    const order = ['-', nat, other, 'X'];
+    const next = order[(order.indexOf(p.pat[i]) + 1) % order.length];
+    p.pat = p.pat.slice(0, i) + next + p.pat.slice(i + 1);
+    save(); renderProg();
+  }
+  function setSub(n) {
+    const p = P(); if (n === p.sub) return;
+    let out = '';
+    for (let j = 0; j < 4 * n; j++) out += (j * p.sub) % n === 0 ? p.pat[(j * p.sub) / n] : '-';
+    p.pat = out; p.sub = n;
+  }
+  function renderProgs() {
+    const list = $('progs'); list.innerHTML = '';
+    $('progs-wrap').hidden = !st.progs.length;
+    st.progs.forEach((q, idx) => {
+      const item = document.createElement('div'); item.className = 'saved-item';
+      const load = document.createElement('button'); load.type = 'button'; load.className = 'load';
+      load.innerHTML = '<span class="nm"></span><span class="meta"></span>';
+      load.querySelector('.nm').textContent = q.name;
+      const pre = PATTERNS.find(([, s, pat]) => s === q.sub && pat === q.pat);
+      load.querySelector('.meta').textContent = q.chords.map(nameOf).join(' – ') + ' · ' + q.bpm + ' bpm · ' + (pre ? pre[0].replace(/\s+[↓↑].*$/, '') : 'custom strum');
+      load.addEventListener('click', () => {
+        if (pl) stopProg();
+        st.prog = clone(q); progSel = -1; $('prog-name').value = q.name;
+        progMsg(`Loaded “${q.name}”.`);
+        if (st.prog.chords.length) putOnNeck(st.prog.chords[0]); else refresh();
+      });
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'del'; del.textContent = '×'; del.setAttribute('aria-label', 'Delete progression ' + q.name);
+      del.addEventListener('click', () => { st.progs.splice(idx, 1); save(); renderProgs(); progMsg(`Deleted “${q.name}”.`); });
+      item.append(load, del); list.appendChild(item);
+    });
+  }
+
+  $('prog-add').addEventListener('click', () => {
+    const p = P();
+    if (!sounding().some(m => m !== null)) { progMsg('The neck is empty. Put a chord on it first.'); return; }
+    const prevBeats = p.chords.length ? p.chords[progSel >= 0 ? progSel : p.chords.length - 1].beats : 4;
+    const at = progSel >= 0 ? progSel + 1 : p.chords.length;
+    p.chords.splice(at, 0, chordNow(prevBeats));
+    progSel = at; progMsg(`Added ${nameOf(p.chords[at])}.`);
+    save(); renderProg();
+  });
+  $('prog-replace').addEventListener('click', () => {
+    const p = P(); if (progSel < 0) return;
+    if (!sounding().some(m => m !== null)) { progMsg('The neck is empty. Put a chord on it first.'); return; }
+    p.chords[progSel] = chordNow(p.chords[progSel].beats);
+    progMsg(`Replaced with ${nameOf(p.chords[progSel])}.`); save(); renderProg();
+  });
+  const move = d => { const p = P(), j = progSel + d; if (progSel < 0 || j < 0 || j >= p.chords.length) return; [p.chords[progSel], p.chords[j]] = [p.chords[j], p.chords[progSel]]; progSel = j; save(); renderProg(); };
+  $('prog-left').addEventListener('click', () => move(-1));
+  $('prog-right').addEventListener('click', () => move(1));
+  $('prog-new').addEventListener('click', () => {
+    if (pl) stopProg();
+    const p = P(); p.chords = []; p.name = ''; progSel = -1; $('prog-name').value = '';
+    progMsg('Started a new progression. Saved ones are still below.'); save(); renderProg();
+  });
+  $('prog-loop').addEventListener('change', e => { P().loop = e.target.checked; save(); });
+  $('prog-bpm').addEventListener('input', e => { P().bpm = Number(e.target.value); $('prog-bpm-o').textContent = P().bpm + ' bpm'; save(); });
+  $('prog-preset').addEventListener('change', e => {
+    if (e.target.value === '') return;
+    const [, s, pat] = PATTERNS[+e.target.value]; P().sub = s; P().pat = pat; save(); renderProg();
+  });
+  document.querySelectorAll('#seg-sub button').forEach(b => b.addEventListener('click', () => { setSub(Number(b.dataset.v)); save(); renderProg(); }));
+  function saveProg() {
+    const p = P();
+    if (!p.chords.length) { progMsg('Add some chords before saving.'); return; }
+    let name = $('prog-name').value.trim() || 'Progression ' + (st.progs.length + 1);
+    p.name = name;
+    const entry = clone(p);
+    const i = st.progs.findIndex(q => q.name.toLowerCase() === name.toLowerCase());
+    if (i >= 0) { st.progs[i] = entry; progMsg(`Updated “${name}”.`); } else { st.progs.unshift(entry); progMsg(`Saved “${name}”.`); }
+    $('prog-name').value = name; save(); renderProgs();
+  }
+  $('prog-save').addEventListener('click', saveProg);
+  $('prog-name').addEventListener('keydown', e => { if (e.key === 'Enter') saveProg(); });
+  $('prog-play').addEventListener('click', () => { if (pl) { stopProg(); return; } startProg(); });
+
+  // Playback: a look-ahead scheduler. Every 25 ms it books the strums due in the next 150 ms on the
+  // audio clock (so timing stays tight even if the screen is busy), and a drawing loop moves the
+  // highlight and puts each chord on the neck as it's heard.
+  function startProg() {
+    if (!P().chords.length) { progMsg('Add some chords first.'); return; }
+    withAudio(() => {
+      if (pl) stopProg();
+      hush();
+      pl = { chip: 0, ct: 0, bt: 0, t: ctx.currentTime + 0.1, occ: 0, live: [], marks: [], shown: -1, step: -1, endAt: null };
+      pl.timer = setInterval(progTick, 25); progTick();
+      pl.raf = requestAnimationFrame(progDraw);
+      renderProg();
+    });
+  }
+  function progTick() {
+    if (!pl || !ctx || pl.endAt !== null) return;
+    const p = P();
+    while (pl.t < ctx.currentTime + 0.15) {
+      if (!p.chords.length) { stopProg(); return; }
+      if (pl.chip >= p.chords.length) pl.chip = 0;
+      const c = p.chords[pl.chip], stT = TPB / p.sub, off = pl.bt % stT, beatSec = 60 / p.bpm;
+      if (off === 0) {
+        const i = pl.bt / stT, ch = p.pat[i] || '-';
+        if (ch !== '-') strum(c, ch, pl.t, stT / TPB * beatSec, i, p.sub);
+        pl.marks.push({ t: pl.t, chip: pl.chip, i });
+      }
+      const adv = stT - off;
+      pl.t += adv / TPB * beatSec;
+      pl.bt = (pl.bt + adv) % (4 * TPB);
+      pl.ct += adv;
+      if (pl.ct >= c.beats * TPB) {
+        pl.ct = 0; pl.chip++; pl.occ++;
+        if (pl.chip >= p.chords.length) {
+          if (p.loop) { pl.chip = 0; pl.bt = 0; }   // each time round starts on beat 1 of the pattern
+          else { pl.endAt = pl.t; return; }
+        }
+      }
+    }
+  }
+  function strum(c, ch, t, stepSec, i, sub) {
+    const idx = c.frets.map((f, s) => f === null ? null : s).filter(s => s !== null);
+    if (!idx.length) return;
+    const course = INSTRUMENTS[c.inst].course;
+    const base = 0.24 / Math.sqrt(Math.max(1, idx.length / 3));
+    let order, gain;
+    if (ch === 'U') { order = idx.slice(-Math.min(idx.length, 4)).reverse(); gain = base * 0.72; }   // upstrokes mostly catch the thin strings
+    else if (ch === 'X') { order = idx; gain = base * 0.8; }
+    else { order = idx; gain = base * (i === 0 ? 1.12 : i % sub === 0 ? 1 : 0.86); }                 // accent the beat
+    // damp what's ringing: strings from the previous chord, strings being struck again, and everything on a chuck
+    const hit = new Set(order);
+    pl.live = pl.live.filter(v => {
+      if (v.end <= t) return false;
+      if (ch === 'X' || v.occ !== pl.occ || hit.has(v.s)) { fadeAt(v, t); return false; }
+      return true;
+    });
+    const per = Math.min(st.spread, stepSec * 1000 * 0.55 / order.length) / 1000;
+    order.forEach((s, k) => {
+      const m = c.tuning[s] + c.frets[s], tt = t + k * per;
+      const vs = course ? courseVoices(m, (c.pairs || [])[s] === 'oct', tt, gain, ch === 'U') : [voice(m, tt, gain)];
+      if (ch === 'X') vs.forEach(v => fadeAt(v, tt + 0.03));
+      else vs.forEach(v => { v.s = s; v.occ = pl.occ; pl.live.push(v); });
+    });
+  }
+  function progDraw() {
+    if (!pl) return;
+    const now = ctx.currentTime;
+    let m = null;
+    while (pl.marks.length && pl.marks[0].t <= now) m = pl.marks.shift();
+    if (m) {
+      pl.step = m.i;
+      if (m.chip !== pl.shown) { pl.shown = m.chip; const c = P().chords[m.chip]; if (c) putOnNeck(c); else renderProg(); }
+      else markStep();
+    }
+    if (pl.endAt !== null && now >= pl.endAt) { stopProg(true); return; }
+    pl.raf = requestAnimationFrame(progDraw);
+  }
+  function stopProg(letRing) {
+    if (!pl) return;
+    clearInterval(pl.timer); cancelAnimationFrame(pl.raf);
+    pl = null;
+    if (!letRing && ctx) hush();
+    renderProg();
+  }
+
   /* ---------- refresh ---------- */
   function refresh() {
     analyzeNow();
@@ -1152,7 +1503,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     $('oct-row').hidden = !inst().course;
     sliders.forEach(([id, f]) => { $(id).value = st[id]; $(id + '-o').textContent = f(st[id]); });
     $('tap-play').checked = st.tapPlay; $('haze').checked = st.haze; $('ghosts').checked = st.ghosts;
-    renderTop(); renderNow(); renderBoard(); renderPresets(); renderStringsEd(); renderMyTunings(); renderSaved();
+    renderTop(); renderNow(); renderBoard(); renderPresets(); renderStringsEd(); renderMyTunings(); renderSaved(); renderProg();
     if (st.findQ && findFor !== st.tuning.join() + '|' + st.maxFret) runFind(st.findQ);   // tuning changed: search again
     save();
   }
@@ -1192,7 +1543,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     setTimeout(() => { if (done) return; if (ctx.state !== 'running') { rebuildAudio(); try { ctx.resume(); } catch (e) {} } go(); }, 300);
   }
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { wentAway = true; if (silentEl) silentEl.pause(); }
+    if (document.hidden) { wentAway = true; if (silentEl) silentEl.pause(); if (pl) stopProg(); }
   });
   window.addEventListener('pageshow', e => { if (e.persisted) wentAway = true; });
   function initAudio() {
@@ -1246,7 +1597,16 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     let out = g;
     if (pan && ctx.createStereoPanner) { const pn = ctx.createStereoPanner(); pn.pan.value = pan; g.connect(pn); out = pn; }
     out.connect(master); out.connect(wet);
-    src.start(when); voices.push({ src, g });
+    src.start(when);
+    const v = { src, g, end: when + p.buf.duration / src.playbackRate.value, stopped: false };
+    voices.push(v);
+    src.onended = () => { const k = voices.indexOf(v); if (k >= 0) voices.splice(k, 1); };
+    return v;
+  }
+  // damp one voice at time t (a string being re-struck, or the fretting hand letting go)
+  function fadeAt(v, t) {
+    if (v.stopped) return; v.stopped = true;
+    try { v.g.gain.setTargetAtTime(0, t, 0.012); v.src.stop(t + 0.15); } catch (e) {}
   }
   function hush() {
     const now = ctx.currentTime;
@@ -1259,12 +1619,11 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     const gap = 0.018, mix = (st.octMix ?? 110) / 100;
     const main = up ? when : when + gap, thin = up ? when + gap : when;
     if (isOct) {
-      voice(m, main, gain * 0.8, 1, -0.35, 6);                     // wound string: darker, so the octave isn't masked
-      voice(m + 12, thin, gain * 0.9 * mix, 1.006, 0.4, 0);       // thin octave string: bright, ~+10 cents
-    } else {
-      voice(m, main, gain * 0.8, 1, -0.3, 2);
-      voice(m, thin, gain * 0.7 * Math.min(1, mix), 1.006, 0.35, 1); // unison partner, ~+10 cents
+      return [voice(m, main, gain * 0.8, 1, -0.35, 6),                // wound string: darker, so the octave isn't masked
+        voice(m + 12, thin, gain * 0.9 * mix, 1.006, 0.4, 0)];        // thin octave string: bright, ~+10 cents
     }
+    return [voice(m, main, gain * 0.8, 1, -0.3, 2),
+      voice(m, thin, gain * 0.7 * Math.min(1, mix), 1.006, 0.35, 1)]; // unison partner, ~+10 cents
   }
   function stringVoices(s, when, gain) {
     const m = st.tuning[s] + st.frets[s];
@@ -1300,6 +1659,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
   });
 
   $('find-in').value = st.findQ || '';
+  $('prog-name').value = st.prog.name || '';
   refresh();
 })();
 </script>

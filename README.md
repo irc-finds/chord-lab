@@ -8,11 +8,12 @@ A chord finder and namer for any tuning, built around odd and drone tunings.
 - **How do I play…**: type a chord name (`E(addb6)`, `Bbmaj7`, `F#m7b5`, `Sib/Re`) and get playable shapes in the current tuning. Lowercase `b` = flat, capital `B` = the note B (Si).
 - 6-string, 7-string, 12-string (octave or unison pairs) and 4/5-string bass, with editable tunings you can name and save.
 - Strum up/down or arpeggiate, with a synthesized plucked-string sound.
+- **Progressions**: string chords together, give each a length, pick or draw a strum pattern (quarters, 8ths, triplets or 16ths, with downstrokes, upstrokes, muted chucks and rests), and loop it. Save progressions by name.
 - Shows notes, intervals or plain dots, in sharps or flats.
 
 Also here: a [chord chart for D# A# D# F# G# D#](https://irc-finds.github.io/chord-lab/dsharp-chart.html).
 
-Saved tunings and voicings are kept in your browser only.
+Saved tunings, voicings and progressions are kept in your browser only.
 
 ## Editing
 
