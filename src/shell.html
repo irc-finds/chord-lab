@@ -1,4 +1,5 @@
 <title>Alt-Tuning Chord Lab</title>
+<!--APPBAR_HEAD-->
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -53,11 +54,11 @@ h2 { font-size: 17px; }
 .eyebrow { font-family: var(--font-data); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .muted { color: var(--muted); }
 
-.top { max-width: 1120px; margin: 0 auto 16px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; justify-content: space-between; }
+.top { max-width: calc(1120px / var(--z, 1)); margin: 0 auto 16px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; justify-content: space-between; }
 .top .tuning-name { font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--accent); }
 
 .lab {
-  max-width: 1120px; margin: 0 auto; display: grid; gap: 16px;
+  max-width: calc(1120px / var(--z, 1)); margin: 0 auto; display: grid; gap: 16px;
   grid-template-columns: minmax(300px, 440px) minmax(0, 1fr);
   grid-template-areas: "board now" "board find" "board prog" "board play" "board sound" "board tuning" "board view" "board saved" "board .";
   align-items: start;
@@ -238,7 +239,7 @@ select { border: 1px solid var(--line); background: var(--bg); border-radius: 9p
 .saved-item .ren-in { border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 4px 8px; font-family: var(--font-display); font-weight: 700; font-size: 16px; width: 100%; }
 .top .tname { font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--ink); }
 
-footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(--muted); }
+footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 12.5px; color: var(--muted); }
 
 /* the octopus: sits under the chord name whenever the shape needs more fingers (or more stretch) than a hand has */
 .octo { margin: 14px 0 0; max-width: 380px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; animation: octo-in 1.4s ease-out; }
@@ -262,8 +263,11 @@ footer { max-width: 1120px; margin: 20px auto 0; font-size: 12.5px; color: var(-
   .dot.small { font-size: 8.5px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+.appbar { --app-w: calc(1120px / var(--z, 1)); }
+/*APPBAR_CSS*/
 </style>
 
+<!--APPBAR_NAV-->
 <div class="top">
   <h1>Alt-Tuning Chord Lab</h1>
   <div><span class="eyebrow" id="inst-label">6-string guitar</span> · <span class="tuning-name" id="tuning-name"></span></div>

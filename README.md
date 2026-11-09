@@ -1,8 +1,19 @@
-# Alt-Tuning Chord Lab
+# Chord Lab
 
-A chord finder and namer for any tuning, built around odd and drone tunings.
+Two tools for odd and drone tunings, switched with the **Songs / Analyzer** buttons at the top. On a phone you can add it
+to the home screen and it opens like an app. The **Size** menu (80% by default on big screens) fits more on screen.
 
-**Open the app:** https://irc-finds.github.io/chord-lab/
+**Open the app:** https://irc-finds.github.io/chord-lab/ (Analyzer) · https://irc-finds.github.io/chord-lab/songs.html (Songs)
+
+## Songs
+
+- Open Guitar Pro files (3 to 8, .gpx, .gp) or MusicXML and play the whole song with its tabs, following along with a chord map.
+- Retune any track (keep the sound, or keep the shapes), transpose, and give each guitar track its own rig, with rig changes partway.
+- Mute, solo and mix tracks, loop bars, change speed.
+- Save the song as MP3 or WAV with your settings, or the tab as a PDF.
+- **My songs**: every song you open is kept in your browser with its tunings, rigs and mix. Sort songs into folders, search, rename or delete folders.
+
+## Analyzer (Alt-Tuning Chord Lab)
 
 - Tap frets on a vertical neck (Oolimo style) and the chord gets named, with alternate readings.
 - **How do I play…**: type a chord name (`E(addb6)`, `Bbmaj7`, `F#m7b5`, `Sib/Re`) and get playable shapes in the current tuning. Lowercase `b` = flat, capital `B` = the note B (Si).
@@ -15,15 +26,17 @@ A chord finder and namer for any tuning, built around odd and drone tunings.
 
 Also here: a [chord chart for D# A# D# F# G# D#](https://irc-finds.github.io/chord-lab/dsharp-chart.html).
 
-Saved tunings, voicings and progressions are kept in your browser only.
+Saved tunings, voicings, progressions and songs are kept in your browser only.
 
 ## Editing
 
 The pages are built from `src/`:
 
-- `src/shell.html` — the app's layout, styles and interface code
+- `src/shell.html` — the Analyzer's layout, styles and interface code
+- `src/songs.html` — the Songs page (it reuses the Analyzer's sound engine from `shell.html`)
+- `src/appbar.html` — the Songs / Analyzer bar and page size, shared by both
 - `src/chord.js` — the chord-naming engine
 - `src/finder.js` — reads chord names and searches for voicings
 - `src/dsharp-chart.html` — the D# tuning chord chart
 
-After editing, run `python3 build.py` to rebuild `index.html` and `dsharp-chart.html`.
+After editing, run `python3 build.py` to rebuild `index.html`, `songs.html` and `dsharp-chart.html`.

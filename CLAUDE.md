@@ -30,15 +30,30 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   the shape is impossible and hides when it isn't (`handCheck()` runs from `refresh()`). Switch in Display (`st.octopus`).
   Easter egg he asked for: the exact shape 4-6-6-7-8-8 prefixes the reason with "You're not Cerati, lil bro."
   He asked for this placement instead of a popup, which felt like a jumpscare.
+- `songs.html` — Songs (the former Guitar Pro trial, approved and ported). Reads GP3–8/GPX/MusicXML with alphaTab 1.8.4 from
+  jsDelivr and plays every track through the Analyzer's synth and rigs (build.py copies those code blocks out of shell.html,
+  so keep the marker lines it slices on: `const DEFAULT_ORDER`, `function freshProg()`, `const pct = v =>`, `function soundChanged()`,
+  `let fx = null;`, `// tone: 0 = bright thin string`, `function voice(`, `function palmAt(v, t) {`, `// 12-string course`).
+  Per-track retune (keep sound / keep shapes), transpose, per-track rig + rig changes partway, mixer, loop, speed, pinned chord map
+  that keeps the file's chord names when the notes match, MP3 (lamejs 1.2.1)/WAV render in suspended pieces, PDF (jsPDF 2.5.1).
+  Downloads are ordinary browser downloads. "My songs": every opened file is kept in IndexedDB `chordlab-library` (store `songs`:
+  id = FNV hash + length of the bytes, title, artist, file, folder, bytes, settings = per-track tuning/mode/transpose/vol/mute/solo/
+  rig/rigChanges, saved 0.6 s after any change). Folders live in localStorage `chordlab-songs` (`prefs.folders`) plus any folder a
+  song uses. On phones `.side` is `display: contents` so My songs sits above the tab.
+- App bar (`src/appbar.html`, injected by build.py into both pages): brand, Songs / Analyzer switch (`<body data-page>`), Size menu.
+  Size is CSS `zoom` on body from `--z` (localStorage `chordlab-zoom`; default 0.8 at ≥ 900px wide, else 1); widths that should fill
+  the screen divide by `var(--z)`. `manifest.webmanifest` + icons make it installable.
 - `dsharp-chart.html` — chord chart for his D# A# D# F# G# D# tuning (MIDI 39 46 51 54 56 63).
 - Live at https://irc-finds.github.io/chord-lab/ (GitHub Pages, served from the `main` branch root).
   Pushing to `main` updates the site within a minute or two.
 
 ## Editing
-Never edit `index.html` or `dsharp-chart.html` directly: they're generated. Edit the files in `src/`, then run `python3 build.py`.
+Never edit `index.html`, `songs.html` or `dsharp-chart.html` directly: they're generated. Edit the files in `src/`, then run `python3 build.py`.
 - `src/shell.html` — layout, styles, interface and audio code. Contains the `/*CHORD_ENGINE*/` and `/*FINDER*/` placeholders.
 - `src/chord.js` — chord naming: `analyze(root, pcs, bass)`, `candidates(midis)`, `formatName(a, nm)`.
 - `src/finder.js` — `parseChordName(text)` and `findVoicings(tuning, maxFret, spec)`. It also works as a Node module.
+- `src/songs.html` — the Songs page (`/*CL_SYNTH*/`, `/*CL_CHORD*/`, `/*CL_FINDER*/` placeholders).
+- `src/appbar.html` — app bar pieces (`APPBAR_HEAD`, `APPBAR_CSS`, `APPBAR_NAV`).
 - `src/dsharp-chart.html` — the D# chart.
 
 Test before pushing:
