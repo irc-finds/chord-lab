@@ -1,0 +1,133 @@
+<title>Chord Lab</title>
+<!--APPBAR_HEAD-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fira+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --bg: #e9e4d8;
+  --surface: #f4f0e6;
+  --ink: #1f1d19;
+  --on-ink: #f4f0e6;
+  --muted: #67615a;
+  --line: #cdc4b1;
+  --faint: #ddd5c4;
+  --wood: #e4ddcd;
+  --string: #8a8273;
+  --accent: #7d6a43;
+  --accent-soft: rgba(125, 106, 67, 0.14);
+  --root: #9a6410;
+  --on-root: #fffaf0;
+  --font-display: "Fira Sans Condensed", "Fira Sans", "PT Sans Narrow", "Arial Narrow", sans-serif;
+  --font-body: "Fira Sans", "PT Sans", -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --warn: #b4443f; --warn-soft: rgba(180, 68, 63, 0.12);
+  /* the readout screen looks the same in both themes, like a real one */
+  --lcd-bg: #12110d; --lcd-ink: #f2b84b; --lcd-dim: #9a8a63; --lcd-edge: #050504;
+  /* maple neck, black dots, nickel frets, bone nut */
+  --board: #e2c896; --grain: rgba(140, 90, 30, 0.10); --grain-hi: rgba(255, 255, 255, 0.12);
+  --fretwire: #a7a7a1; --fret-shade: rgba(60, 40, 10, 0.35); --nut: #f1e8d0;
+  --str-plain: #8f8f8a; --str-wound-a: #9a8257; --str-wound-b: #6d5b3b; --str-shadow: rgba(60, 40, 10, 0.35);
+  --inlay-a: #3a332c; --inlay-b: #1f1b17;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #16171a; --surface: #1c1d21; --ink: #ece4d0; --on-ink: #16171a; --muted: #9b968a;
+    --line: #2c2f36; --faint: #25272d; --wood: #1a1b1f; --string: #6f6a60;
+    --accent: #cdbb94; --accent-soft: rgba(205, 187, 148, 0.14); --root: #e5a93c; --on-root: #1b1408;
+    --warn: #d9534f; --warn-soft: rgba(217, 83, 79, 0.15); color-scheme: dark;
+    --lcd-bg: #12110d; --lcd-ink: #f2b84b; --lcd-dim: #9a8a63; --lcd-edge: #050504;
+    --board: #2b1e16; --grain: rgba(0, 0, 0, 0.22); --grain-hi: rgba(255, 220, 180, 0.035);
+    --fretwire: #b9b8b1; --fret-shade: rgba(0, 0, 0, 0.55); --nut: #e9dfc4;
+    --str-plain: #cfcfc9; --str-wound-a: #c2a877; --str-wound-b: #7d6a48; --str-shadow: rgba(0, 0, 0, 0.6);
+    --inlay-a: #fbf6ea; --inlay-b: #b9ae95;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #16171a; --surface: #1c1d21; --ink: #ece4d0; --on-ink: #16171a; --muted: #9b968a;
+  --line: #2c2f36; --faint: #25272d; --wood: #1a1b1f; --string: #6f6a60;
+  --accent: #cdbb94; --accent-soft: rgba(205, 187, 148, 0.14); --root: #e5a93c; --on-root: #1b1408;
+  --warn: #d9534f; --warn-soft: rgba(217, 83, 79, 0.15); color-scheme: dark;
+  --lcd-bg: #12110d; --lcd-ink: #f2b84b; --lcd-dim: #9a8a63; --lcd-edge: #050504;
+  --board: #2b1e16; --grain: rgba(0, 0, 0, 0.22); --grain-hi: rgba(255, 220, 180, 0.035);
+  --fretwire: #b9b8b1; --fret-shade: rgba(0, 0, 0, 0.55); --nut: #e9dfc4;
+  --str-plain: #cfcfc9; --str-wound-a: #c2a877; --str-wound-b: #7d6a48; --str-shadow: rgba(0, 0, 0, 0.6);
+  --inlay-a: #fbf6ea; --inlay-b: #b9ae95;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-block: max(20px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-bottom, 0px)); display: grid; place-items: center; min-height: 100dvh; }
+a { color: inherit; }
+.unit { width: min(720px, 100%); display: grid; gap: 18px; padding: 22px 22px 20px; background: var(--surface); border: 1px solid var(--line); }
+.unit .lcd { background-color: var(--lcd-bg); border: 1px solid var(--lcd-edge); border-radius: 3px; padding: 16px 18px 14px;
+  background-image: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 3px); box-shadow: inset 0 2px 7px rgba(0, 0, 0, 0.85);
+  color: var(--lcd-ink); display: grid; gap: 4px; min-height: 104px; align-content: center; }
+.brandline { display: flex; align-items: center; gap: 12px; }
+.brandline img { width: 40px; height: 40px; border-radius: 6px; }
+.lcd .big { font-family: var(--font-display); font-weight: 600; font-size: 34px; line-height: 1; letter-spacing: 0.02em; }
+.lcd .boot { font-family: var(--font-data); font-size: 12.5px; color: var(--lcd-dim); min-height: 1.5em; }
+.lcd .boot::after { content: "▍"; animation: blink 1s steps(1) infinite; margin-left: 2px; }
+.lcd.ready .boot::after { content: ""; }
+@keyframes blink { 50% { opacity: 0; } }
+.keys { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.key { display: grid; gap: 6px; align-content: start; text-decoration: none; padding: 18px 18px 16px; min-height: 150px; border-radius: 4px;
+  background: linear-gradient(180deg, var(--key-top), var(--key-bot)); border: 1px solid var(--key-edge); border-bottom-width: 4px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); color: var(--key-ink); opacity: 0.35; pointer-events: none; transition: opacity 0.4s; }
+.ready-all .key { opacity: 1; pointer-events: auto; }
+.key:hover { filter: brightness(1.05); }
+.key:active { transform: translateY(3px); border-bottom-width: 1px; margin-bottom: 3px; }
+.key .ic { width: 34px; height: 34px; stroke: var(--root); fill: none; stroke-width: 1.5; }
+.key b { font-family: var(--font-display); font-weight: 600; font-size: 24px; line-height: 1.1; }
+.key span { font-size: 13.5px; color: var(--muted); }
+.key .last { font-family: var(--font-data); font-size: 11.5px; color: var(--root); }
+.foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; font-size: 12.5px; color: var(--muted); }
+.foot .tag { font-family: var(--font-display); font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--warn); }
+@media (max-width: 560px) { .keys { grid-template-columns: 1fr; } .key { min-height: 0; } .lcd .big { font-size: 28px; } }
+@media (prefers-reduced-motion: reduce) { .lcd .boot::after { animation: none; } .key { transition: none; } }
+/*APPBAR_CSS*/
+body { padding-left: max(16px, env(safe-area-inset-left, 0px)) !important; padding-right: max(16px, env(safe-area-inset-right, 0px)) !important; zoom: 1; }
+</style>
+<main class="unit panel" id="unit">
+  <div class="lcd" id="lcd" aria-live="polite">
+    <div class="brandline"><img src="icon-192.png" alt="" width="40" height="40"><div class="big">Chord Lab</div></div>
+    <div class="boot" id="boot">Warming up the strings…</div>
+  </div>
+  <div class="keys">
+    <a class="key" href="songs.html">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>
+      <b>Songs</b>
+      <span>Open Guitar Pro files, play every track with your rigs, retune, mix, save MP3 or PDF.</span>
+      <span class="last" id="last-songs"></span>
+    </a>
+    <a class="key" href="finder.html">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2v20M10 2v20M14 2v20M18 2v20M4 6h16M4 11h16M4 16h16"/><circle cx="10" cy="8.5" r="1.6" fill="currentColor"/><circle cx="14" cy="13.5" r="1.6" fill="currentColor"/></svg>
+      <b>Chord Finder</b>
+      <span>Tap frets to name chords in any tuning, find shapes, build progressions and whole songs.</span>
+      <span class="last" id="last-finder"></span>
+    </a>
+  </div>
+  <div class="foot"><span><span class="tag">Sandbox</span> · new ideas get tried here first. Your saved stuff here is a separate copy.</span><a href="../">Main app ↗</a></div>
+</main>
+<script>
+(function () {
+  // a short power-on: the keys light up once the screen says it's ready
+  var lines = ['Warming up the strings…', 'Tuning to whatever you like…', 'Ready.'], i = 0, boot = document.getElementById('boot');
+  var fast = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function step() {
+    boot.textContent = lines[i];
+    if (i === lines.length - 1) { document.getElementById('lcd').classList.add('ready'); document.getElementById('unit').classList.add('ready-all'); return; }
+    i++; setTimeout(step, fast ? 0 : 420);
+  }
+  step();
+  // what's waiting in each
+  try {
+    var st = JSON.parse(localStorage.getItem('chord-lab-sbx') || localStorage.getItem('chord-lab') || 'null');
+    if (st) {
+      var n = (st.progs || []).length, s = (st.arrs || []).length;
+      var bits = []; if (n) bits.push(n + ' progression' + (n === 1 ? '' : 's')); if (s) bits.push(s + ' song' + (s === 1 ? '' : 's'));
+      document.getElementById('last-finder').textContent = bits.join(' · ');
+    }
+  } catch (e) {}
+})();
+</script>

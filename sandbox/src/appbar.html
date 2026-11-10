@@ -1,0 +1,115 @@
+<!--APPBAR_HEAD-->
+<script>
+/* page size: 80% on wide screens, 100% on phones, unless he picked one */
+(function () {
+  var z = NaN; try { z = parseFloat(localStorage.getItem('chordlab-zoom-sbx') || localStorage.getItem('chordlab-zoom')); } catch (e) {}
+  if (!(z >= 0.5 && z <= 1.2)) z = window.innerWidth >= 900 ? 0.8 : 1;
+  document.documentElement.style.setProperty('--z', z);
+})();
+</script>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chord Lab β">
+<meta name="theme-color" content="#16171a">
+<!--/APPBAR_HEAD-->
+<!--APPBAR_CSS-->
+/* the app bar: Songs | Analyzer switch, shared by both pages */
+body { zoom: var(--z, 1); padding-left: calc(max(16px, env(safe-area-inset-left, 0px)) / var(--z, 1)) !important; padding-right: calc(max(16px, env(safe-area-inset-right, 0px)) / var(--z, 1)) !important; }
+.appbar { max-width: var(--app-w, 1280px); margin: 0 auto 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.appbar .brand { font-family: var(--font-display); font-weight: 700; font-size: 19px; letter-spacing: -0.01em; color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+.appbar .brand img { width: 26px; height: 26px; border-radius: 5px; }
+.appbar .switch { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); padding: 3px; gap: 3px; }
+.appbar .switch a { text-decoration: none; color: var(--muted); font-weight: 600; font-size: 14px; padding: 6px 16px; border-radius: 5px; display: inline-flex; align-items: center; gap: 7px; }
+.appbar .switch a svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.appbar .switch a:hover { color: var(--ink); }
+.appbar .switch a[aria-current="page"] { background: var(--ink); color: var(--bg); }
+.appbar .sbx { font-family: var(--font-display); font-weight: 600; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--warn); border: 1px solid var(--warn); border-radius: 3px; padding: 1px 6px; margin-left: -6px; }
+.appbar .size { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.appbar .size select { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 4px 6px; font: inherit; }
+@media (max-width: 480px) { .appbar .switch { flex: 1; } .appbar .switch a { flex: 1; justify-content: center; } .appbar .size { margin-left: 0; } }
+
+/* ---------- materials shared by both pages: rack modules, keys, inset fields ---------- */
+:root {
+  --key-top: #fbf9f3; --key-bot: #ebe5d6; --key-edge: #b7ad97; --key-ink: #2a2620;
+  --cap-top: #2e2b26; --cap-bot: #1f1d19; --cap-edge: #0d0c0a; --cap-ink: #f3ebd7;
+  --inset: #fffdf7; --inset-edge: #bfb6a2; --rack-shadow: 0 1px 0 rgba(255, 255, 255, 0.7), 0 2px 5px -2px rgba(60, 45, 20, 0.25);
+  --screw-a: #d8d1c2; --screw-b: #9d9481; --plate-sheen: rgba(255, 255, 255, 0.5);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --key-top: #2f3136; --key-bot: #25272b; --key-edge: #101113; --key-ink: #e6dfcc;
+    --cap-top: #f3ebd7; --cap-bot: #ddd3ba; --cap-edge: #8c836e; --cap-ink: #1b1914;
+    --inset: #111214; --inset-edge: #0a0a0b; --rack-shadow: 0 1px 0 rgba(0, 0, 0, 0.7), 0 3px 8px -4px rgba(0, 0, 0, 0.8);
+    --screw-a: #55585f; --screw-b: #232428; --plate-sheen: rgba(255, 255, 255, 0.03);
+  }
+}
+:root[data-theme="dark"] {
+  --key-top: #2f3136; --key-bot: #25272b; --key-edge: #101113; --key-ink: #e6dfcc;
+  --cap-top: #f3ebd7; --cap-bot: #ddd3ba; --cap-edge: #8c836e; --cap-ink: #1b1914;
+  --inset: #111214; --inset-edge: #0a0a0b; --rack-shadow: 0 1px 0 rgba(0, 0, 0, 0.7), 0 3px 8px -4px rgba(0, 0, 0, 0.8);
+  --screw-a: #55585f; --screw-b: #232428; --plate-sheen: rgba(255, 255, 255, 0.03);
+}
+/* a module is a faceplate: matte, a little sheen at the top edge, two screws */
+.panel, .sheet { border-radius: 4px; box-shadow: var(--rack-shadow), inset 0 1px 0 var(--plate-sheen); background-image: linear-gradient(180deg, var(--plate-sheen), transparent 90px); }
+.panel:where(:not(.area-board):not(.area-now):not(.board-wrap)), .sheet { position: relative; }
+.panel::before, .panel::after, .sheet::before, .sheet::after {
+  content: ""; position: absolute; top: 6px; width: 7px; height: 7px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 35% 30%, var(--screw-a), var(--screw-b) 75%);
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.45);
+}
+.panel::before, .sheet::before { left: 6px; }
+.panel::after, .sheet::after { right: 6px; }
+/* module names are silkscreened, not headlines */
+.panel h2, .sheet h2 { font-family: var(--font-display); font-weight: 600; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+/* keys: a little travel, a darker bottom edge */
+.btn, .seg button, .part .pn, .part .times button, .folders button {
+  background: linear-gradient(180deg, var(--key-top), var(--key-bot)); color: var(--key-ink);
+  border: 1px solid var(--key-edge); border-bottom-width: 2px; border-radius: 3px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.btn { padding: 5px 12px; }
+.btn:hover:not(:disabled), .folders button:hover { filter: brightness(1.06); border-color: var(--key-edge); }
+.btn:active:not(:disabled), .seg button:active, .part .pn:active, .folders button:active { transform: translateY(1px); border-bottom-width: 1px; margin-bottom: 1px; }
+.btn.primary, .seg button[aria-pressed="true"], .folders button[aria-pressed="true"], .btn[aria-pressed="true"] {
+  background: linear-gradient(180deg, var(--cap-top), var(--cap-bot)); color: var(--cap-ink); border-color: var(--cap-edge);
+}
+.seg { border-radius: 4px; background: var(--inset); border-color: var(--inset-edge); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35); padding: 3px; gap: 3px; }
+.seg button { border-radius: 2px; }
+.seg button:not([aria-pressed="true"]) { background: transparent; border-color: transparent; box-shadow: none; color: var(--muted); }
+.folders button:not([aria-pressed="true"]) { color: var(--key-ink); }
+.folders button.add { border-style: dashed; border-bottom-width: 1px; background: transparent; color: var(--muted); }
+/* fields are cut into the plate */
+select, .text-in input, .fold-edit input, .lib-fold input, .lib-search, input[type="number"] {
+  background: var(--inset); border: 1px solid var(--inset-edge); border-radius: 3px; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3); color: var(--ink);
+}
+.appbar .switch { border-radius: 4px; background: var(--inset); border-color: var(--inset-edge); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35); }
+.appbar .switch a { border-radius: 2px; }
+.appbar .switch a[aria-current="page"] { background: linear-gradient(180deg, var(--cap-top), var(--cap-bot)); color: var(--cap-ink); box-shadow: 0 1px 0 var(--cap-edge); }
+.appbar .size select { border-radius: 3px; }
+<!--/APPBAR_CSS-->
+<!--APPBAR_NAV-->
+<nav class="appbar" aria-label="Chord Lab">
+  <a class="brand" href="./" title="Home"><img src="icon-192.png" alt="" width="26" height="26">Chord Lab</a><span class="sbx">Sandbox</span>
+  <div class="switch">
+    <a href="songs.html" data-page="songs"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 12.5V3.5l7-1.5v9"/><circle cx="4.3" cy="12.5" r="1.8"/><circle cx="11.3" cy="11" r="1.8"/></svg>Songs</a>
+    <a href="finder.html" data-page="finder"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5v13M8 1.5v13M12 1.5v13M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/></svg>Chord Finder</a>
+  </div>
+  <label class="size">Size <select id="app-zoom" aria-label="Page size"><option value="1">100%</option><option value="0.9">90%</option><option value="0.8">80%</option><option value="0.7">70%</option></select></label>
+</nav>
+<script>
+(function () {
+  var page = document.body.getAttribute('data-page');
+  document.querySelectorAll('.appbar .switch a').forEach(function (a) { if (a.dataset.page === page) a.setAttribute('aria-current', 'page'); });
+  var sel = document.getElementById('app-zoom'), z = getComputedStyle(document.documentElement).getPropertyValue('--z').trim();
+  sel.value = String(parseFloat(z) || 1); if (!sel.value) sel.value = '1';
+  sel.addEventListener('change', function () {
+    try { localStorage.setItem('chordlab-zoom-sbx', sel.value); } catch (e) {}
+    document.documentElement.style.setProperty('--z', sel.value);
+    window.dispatchEvent(new Event('resize'));
+  });
+})();
+</script>
+<!--/APPBAR_NAV-->

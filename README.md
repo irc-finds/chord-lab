@@ -5,6 +5,10 @@ to the home screen and it opens like an app. The **Size** menu (80% by default o
 
 **Open the app:** https://irc-finds.github.io/chord-lab/ (Analyzer) · https://irc-finds.github.io/chord-lab/songs.html (Songs)
 
+## Sandbox
+
+New ideas are tried at https://irc-finds.github.io/chord-lab/sandbox/ before they reach the main app. It keeps its own copy of your saved stuff.
+
 ## Songs
 
 - Open Guitar Pro files (3 to 8, .gpx, .gp) or MusicXML and play the whole song with its tabs, following along with a chord map.

@@ -73,6 +73,20 @@ Explain changes in plain words, never ask him to run commands, and push the chan
 - Live at https://irc-finds.github.io/chord-lab/ (GitHub Pages, served from the `main` branch root).
   Pushing to `main` updates the site within a minute or two.
 
+## Sandbox (try-outs before they reach the main app)
+- `sandbox/` is a separate copy of the app, live at https://irc-finds.github.io/chord-lab/sandbox/ (GitHub doesn't let this
+  session create a new repo, so it's a folder; it never touches the main pages). New ideas go here first; when Diego approves,
+  port them into `src/`. Build with `python3 sandbox/build.py`; edit only `sandbox/src/`. Pages: `index.html` = home screen
+  (power-on screen, two keys: Songs and Chord Finder), `finder.html` = the Analyzer, `songs.html`.
+- Its saved data is separate: localStorage `chord-lab-sbx`, `chordlab-songs-sbx`, `chordlab-zoom-sbx`, IndexedDB `chordlab-library-sbx`.
+  On first open each one starts from a copy of the main app's (main data is only read, never written).
+- Sandbox Chord Finder fits the screen (body height = 100dvh / zoom, nothing scrolls but the neck and the page area): neck left,
+  amber screen on top right, a row of page buttons (`PAGES`, `goPage(id)`, `#hash` remembers the page), and one page at a time in
+  `#pages` (sections carry `data-page`). Phones: screen on top, neck or page in the middle, buttons along the bottom (with Neck).
+- Saved sounds: `st.soundPresets` [{id, name, mode, p, order}] from Sound → "Save this sound"; they're in the Rig menu under
+  My sounds (`st.fx.rig = 'u:' + id`). Sandbox Songs reads them from `chord-lab-sbx` and adds them to RIGS as "My sound: …"
+  (rigState honours their pedal order), so any track can use them.
+
 ## Editing
 Never edit `index.html`, `songs.html` or `dsharp-chart.html` directly: they're generated. Edit the files in `src/`, then run `python3 build.py`.
 - `src/shell.html` — layout, styles, interface and audio code. Contains the `/*CHORD_ENGINE*/` and `/*FINDER*/` placeholders.
