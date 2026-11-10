@@ -7,38 +7,39 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fira+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: a chord book. Tuning header, one interactive neck that shows the moving shape, a sticky bar for display options and degree filter, then grids of tap-to-hear chord boxes grouped by hand position. */
 :root {
-  --bg: #eceef2;
-  --surface: #f8f9fb;
-  --ink: #181b25;
-  --on-ink: #f8f9fb;
-  --muted: #5c6376;
-  --line: #c6cad5;
-  --faint: #dde0e7;
-  --accent: #b03f6a;        /* open strings that ring = the drone */
-  --accent-soft: rgba(176, 63, 106, 0.12);
-  --root: #1d6b74;          /* chord root */
-  --on-root: #ffffff;
-  --font-display: "Archivo Narrow", "Arial Narrow", "Roboto Condensed", sans-serif;
-  --font-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
-  --font-data: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --bg: #e9e4d8;
+  --surface: #f4f0e6;
+  --ink: #1f1d19;
+  --on-ink: #f4f0e6;
+  --muted: #67615a;
+  --line: #cdc4b1;
+  --faint: #ddd5c4;
+  --accent: #7d6a43;        /* open strings that ring = the drone */
+  --accent-soft: rgba(125, 106, 67, 0.14);
+  --root: #9a6410;          /* chord root */
+  --on-root: #fffaf0;
+  --font-display: "Fira Sans Condensed", "Fira Sans", "PT Sans Narrow", "Arial Narrow", sans-serif;
+  --font-body: "Fira Sans", "PT Sans", -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --warn: #b4443f; --warn-soft: rgba(180, 68, 63, 0.12);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #12141b; --surface: #1a1d26; --ink: #e6e8ef; --on-ink: #12141b; --muted: #9aa1b4;
-    --line: #363a48; --faint: #262a35; --accent: #ec8db0; --accent-soft: rgba(236, 141, 176, 0.14);
-    --root: #5cc3cc; --on-root: #0d1a1c;
-    color-scheme: dark;
+    --bg: #16171a; --surface: #1c1d21; --ink: #ece4d0; --on-ink: #16171a; --muted: #9b968a;
+    --line: #2c2f36; --faint: #25272d; --accent: #cdbb94; --accent-soft: rgba(205, 187, 148, 0.14);
+    --root: #e5a93c; --on-root: #1b1408;
+    --warn: #d9534f; --warn-soft: rgba(217, 83, 79, 0.15); color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #12141b; --surface: #1a1d26; --ink: #e6e8ef; --on-ink: #12141b; --muted: #9aa1b4;
-  --line: #363a48; --faint: #262a35; --accent: #ec8db0; --accent-soft: rgba(236, 141, 176, 0.14);
-  --root: #5cc3cc; --on-root: #0d1a1c;
-  color-scheme: dark;
+  --bg: #16171a; --surface: #1c1d21; --ink: #ece4d0; --on-ink: #16171a; --muted: #9b968a;
+  --line: #2c2f36; --faint: #25272d; --accent: #cdbb94; --accent-soft: rgba(205, 187, 148, 0.14);
+  --root: #e5a93c; --on-root: #1b1408;
+  --warn: #d9534f; --warn-soft: rgba(217, 83, 79, 0.15); color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body {
@@ -130,7 +131,7 @@ section.group { display: grid; gap: 16px; }
 .card svg { width: 100%; max-width: 210px; height: auto; justify-self: center; }
 .dot-label { font-family: var(--font-data); font-weight: 700; }
 .frets { font-family: var(--font-data); font-size: 13px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
-.pitches { font-family: var(--font-data); font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+.pitches { font-family: var(--font-data); font-size: 11.5px; color: var(--muted); line-height: 1.5; }
 .formula { font-size: 12.5px; color: var(--muted); }
 .formula strong { color: var(--root); font-weight: 600; }
 .note { font-size: 12.5px; color: var(--muted); }

@@ -18,48 +18,49 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Chord Lab">
-<meta name="theme-color" content="#12141b">
+<meta name="theme-color" content="#16171a">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fira+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: an instrument workbench. Vertical fretboard on the left (low string left, nut at top, like Oolimo); chord readout, playback, tuning and saved voicings stacked on the right. On phones the chord readout sticks to the top above the board. */
 :root {
-  --bg: #eceef2;
-  --surface: #f8f9fb;
-  --ink: #181b25;
-  --on-ink: #f8f9fb;
-  --muted: #5c6376;
-  --line: #c6cad5;
-  --faint: #dde0e7;
-  --wood: #e3e6ec;
-  --string: #8d93a3;
-  --accent: #b03f6a;
-  --accent-soft: rgba(176, 63, 106, 0.12);
-  --root: #1d6b74;
-  --on-root: #ffffff;
-  --font-display: "Archivo Narrow", "Arial Narrow", "Roboto Condensed", sans-serif;
-  --font-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
-  --font-data: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --bg: #e9e4d8;
+  --surface: #f4f0e6;
+  --ink: #1f1d19;
+  --on-ink: #f4f0e6;
+  --muted: #67615a;
+  --line: #cdc4b1;
+  --faint: #ddd5c4;
+  --wood: #e4ddcd;
+  --string: #8a8273;
+  --accent: #7d6a43;
+  --accent-soft: rgba(125, 106, 67, 0.14);
+  --root: #9a6410;
+  --on-root: #fffaf0;
+  --font-display: "Fira Sans Condensed", "Fira Sans", "PT Sans Narrow", "Arial Narrow", sans-serif;
+  --font-body: "Fira Sans", "PT Sans", -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --warn: #b4443f; --warn-soft: rgba(180, 68, 63, 0.12);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #12141b; --surface: #1a1d26; --ink: #e6e8ef; --on-ink: #12141b; --muted: #9aa1b4;
-    --line: #363a48; --faint: #262a35; --wood: #171a22; --string: #6d7386;
-    --accent: #ec8db0; --accent-soft: rgba(236, 141, 176, 0.14); --root: #5cc3cc; --on-root: #0d1a1c;
-    color-scheme: dark;
+    --bg: #16171a; --surface: #1c1d21; --ink: #ece4d0; --on-ink: #16171a; --muted: #9b968a;
+    --line: #2c2f36; --faint: #25272d; --wood: #1a1b1f; --string: #6f6a60;
+    --accent: #cdbb94; --accent-soft: rgba(205, 187, 148, 0.14); --root: #e5a93c; --on-root: #1b1408;
+    --warn: #d9534f; --warn-soft: rgba(217, 83, 79, 0.15); color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #12141b; --surface: #1a1d26; --ink: #e6e8ef; --on-ink: #12141b; --muted: #9aa1b4;
-  --line: #363a48; --faint: #262a35; --wood: #171a22; --string: #6d7386;
-  --accent: #ec8db0; --accent-soft: rgba(236, 141, 176, 0.14); --root: #5cc3cc; --on-root: #0d1a1c;
-  color-scheme: dark;
+  --bg: #16171a; --surface: #1c1d21; --ink: #ece4d0; --on-ink: #16171a; --muted: #9b968a;
+  --line: #2c2f36; --faint: #25272d; --wood: #1a1b1f; --string: #6f6a60;
+  --accent: #cdbb94; --accent-soft: rgba(205, 187, 148, 0.14); --root: #e5a93c; --on-root: #1b1408;
+  --warn: #d9534f; --warn-soft: rgba(217, 83, 79, 0.15); color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body {
-  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45;
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 20px 48px;
 }
@@ -70,19 +71,25 @@ button { cursor: pointer; }
 h1, h2 { font-family: var(--font-display); font-weight: 700; margin: 0; letter-spacing: -0.01em; }
 h1 { font-size: 22px; }
 h2 { font-size: 17px; }
-.eyebrow { font-family: var(--font-data); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.eyebrow { font-family: var(--font-display); font-weight: 600; font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 .muted { color: var(--muted); }
 
 .top { max-width: calc(1120px / var(--z, 1)); margin: 0 auto 16px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; justify-content: space-between; }
 .top .tuning-name { font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--accent); }
 
 .lab {
-  max-width: calc(1120px / var(--z, 1)); margin: 0 auto; display: grid; gap: 16px;
+  max-width: calc(1120px / var(--z, 1)); margin: 0 auto; display: grid; gap: 14px;
   grid-template-columns: minmax(300px, 440px) minmax(0, 1fr);
-  grid-template-areas: "board now" "board find" "board prog" "board play" "board sound" "board tuning" "board view" "board saved" "board .";
+  grid-template-areas: "board desk";
   align-items: start;
 }
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 12px; min-width: 0; }
+/* the right-hand column: the readout stays pinned while the other panels scroll under it */
+.desk { grid-area: desk; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.desk > .area-now { position: sticky; top: 0; z-index: 6; box-shadow: 0 12px 18px -18px rgba(0, 0, 0, 0.7); }
+/* the neck stays put while you work on the right */
+.area-board { position: sticky; top: 12px; max-height: calc(100vh / var(--z, 1) - 24px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; gap: 12px; min-width: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035); }
 .area-now { grid-area: now; }
 .area-play { grid-area: play; }
 .area-tuning { grid-area: tuning; }
@@ -133,7 +140,7 @@ h2 { font-size: 17px; }
 .step .c { font-family: var(--font-data); font-size: 9.5px; color: var(--muted); }
 .step.D, .step.U { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .step.D .c, .step.U .c { color: inherit; opacity: 0.6; }
-.step.X { color: var(--accent); border-color: var(--accent); }
+.step.X { color: var(--warn); border-color: var(--warn); }
 .step.P { background: var(--muted); color: var(--bg); border-color: var(--muted); }
 .step.P .g { font-size: 12.5px; letter-spacing: 0.02em; }
 .step.P .c { color: inherit; opacity: 0.7; }
@@ -162,18 +169,18 @@ h2 { font-size: 17px; }
 .area-board { grid-area: board; }
 
 /* chord readout */
-.now { display: grid; gap: 6px; }
+.now { display: grid; gap: 8px; padding-block: 12px; }
 .now-row { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
-.chord-name { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 5vw, 42px); line-height: 1.05; overflow-wrap: anywhere; min-width: 0; }
+.chord-name { font-family: var(--font-display); font-weight: 700; font-size: clamp(28px, 4.4vw, 38px); line-height: 1.05; letter-spacing: -0.005em; overflow-wrap: anywhere; min-width: 0; }
 .chord-sub { font-family: var(--font-data); font-size: 12.5px; color: var(--muted); }
 .play-big {
-  flex: none; width: 56px; height: 56px; border-radius: 50%; border: 0; background: var(--ink); color: var(--bg);
+  flex: none; width: 52px; height: 52px; border-radius: 50%; border: 0; background: var(--ink); color: var(--bg);
   display: grid; place-items: center;
 }
 .play-big svg { width: 20px; height: 20px; fill: currentColor; margin-left: 3px; }
 .play-big:active { transform: scale(0.96); }
-.alts { display: flex; flex-wrap: wrap; gap: 6px; }
-.alt { border: 1px solid var(--line); background: transparent; border-radius: 8px; padding: 3px 10px; font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--muted); }
+.alts { display: flex; flex-wrap: wrap; gap: 5px; }
+.alt { border: 1px solid var(--line); background: var(--faint); border-radius: 4px; padding: 2px 8px; font-family: var(--font-display); font-weight: 500; font-size: 14.5px; color: var(--muted); }
 .alt[aria-pressed="true"] { border-color: var(--root); color: var(--root); background: var(--surface); }
 
 /* segmented controls */
@@ -196,7 +203,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .text-in { display: flex; gap: 8px; }
 .text-in input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--bg); border-radius: 9px; padding: 6px 10px; font-family: var(--font-data); font-size: 13.5px; }
 .hint { font-size: 12.5px; color: var(--muted); }
-.err { font-size: 12.5px; color: var(--accent); }
+.err { font-size: 12.5px; color: var(--warn); }
 select { border: 1px solid var(--line); background: var(--bg); border-radius: 9px; padding: 6px 8px; font-size: 13.5px; max-width: 100%; }
 
 /* tuning editor */
@@ -209,7 +216,7 @@ select { border: 1px solid var(--line); background: var(--bg); border-radius: 9p
 .str-ed .pair { font-size: 11px; border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 1px 7px; color: var(--muted); }
 
 /* fretboard */
-.board-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 10px 14px; display: grid; gap: 10px; }
+.board-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 10px 14px; display: grid; gap: 10px; }
 .board-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: space-between; }
 .board-tools .grp { display: flex; gap: 6px; flex-wrap: wrap; }
 .board { --fw: 30px; display: grid; }
@@ -261,17 +268,30 @@ select { border: 1px solid var(--line); background: var(--bg); border-radius: 9p
 footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 12.5px; color: var(--muted); }
 
 /* the octopus: sits under the chord name whenever the shape needs more fingers (or more stretch) than a hand has */
-.octo { margin: 14px 0 0; max-width: 380px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; animation: octo-in 1.4s ease-out; }
-.octo img { display: block; width: 100%; height: auto; }
-.octo figcaption { padding: 8px 12px 10px; display: grid; gap: 2px; font-size: 13px; }
-.octo figcaption b { font-family: var(--font-display); font-size: 15px; }
-.octo figcaption span { color: var(--muted); font-size: 12.5px; }
+.octo { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; height: 84px; padding: 6px 12px 6px 6px;
+  background: var(--warn-soft); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 6px; overflow: hidden; animation: octo-in 1.4s ease-out; }
+.octo[hidden] { display: none; }
+.octo-pic { width: 103px; height: 72px; padding: 0; border: 0; background: var(--faint); border-radius: 4px; overflow: hidden; cursor: zoom-in; }
+.octo-pic img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.octo-txt { display: grid; gap: 2px; min-width: 0; }
+.octo-txt b { font-family: var(--font-display); font-weight: 600; font-size: 15.5px; line-height: 1.2; color: var(--warn); }
+.octo-txt span { font-size: 13px; line-height: 1.35; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.octo.big { height: auto; align-items: start; grid-template-columns: minmax(0, 280px) minmax(0, 1fr); }
+.octo.big .octo-pic { height: auto; width: 100%; aspect-ratio: 676 / 474; cursor: zoom-out; }
+.octo.big .octo-txt span { display: block; }
 @keyframes octo-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .octo { animation-duration: 0.6s; } }
 
 @media (max-width: 860px) {
   .lab { grid-template-columns: minmax(0, 1fr); grid-template-areas: "now" "board" "find" "prog" "play" "sound" "tuning" "view" "saved"; }
-  .area-now { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 6; box-shadow: 0 6px 16px -10px rgba(0,0,0,0.35); }
+  .desk { display: contents; }
+  .area-board { position: static; max-height: none; overflow: visible; }
+  .octo { height: auto; min-height: 76px; gap: 10px; }
+  .octo-pic { width: 86px; height: 60px; }
+  .octo-txt b { font-size: 14px; }
+  .octo-txt span { font-size: 12px; line-height: 1.3; -webkit-line-clamp: 3; }
+  .octo.big { grid-template-columns: minmax(0, 1fr); }
+  .area-now, .desk > .area-now { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 6; box-shadow: 0 6px 16px -10px rgba(0,0,0,0.35); }
   .chord-name { font-size: 30px; }
   .alts { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
   .alt { flex: none; }
@@ -287,9 +307,9 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
 body { zoom: var(--z, 1); padding-left: calc(max(16px, env(safe-area-inset-left, 0px)) / var(--z, 1)) !important; padding-right: calc(max(16px, env(safe-area-inset-right, 0px)) / var(--z, 1)) !important; }
 .appbar { max-width: var(--app-w, 1280px); margin: 0 auto 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .appbar .brand { font-family: var(--font-display); font-weight: 700; font-size: 19px; letter-spacing: -0.01em; color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
-.appbar .brand img { width: 26px; height: 26px; border-radius: 7px; }
-.appbar .switch { display: inline-flex; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 3px; gap: 3px; }
-.appbar .switch a { text-decoration: none; color: var(--muted); font-weight: 600; font-size: 14px; padding: 7px 16px; border-radius: 9px; display: inline-flex; align-items: center; gap: 7px; }
+.appbar .brand img { width: 26px; height: 26px; border-radius: 5px; }
+.appbar .switch { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); padding: 3px; gap: 3px; }
+.appbar .switch a { text-decoration: none; color: var(--muted); font-weight: 600; font-size: 14px; padding: 6px 16px; border-radius: 5px; display: inline-flex; align-items: center; gap: 7px; }
 .appbar .switch a svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; }
 .appbar .switch a:hover { color: var(--ink); }
 .appbar .switch a[aria-current="page"] { background: var(--ink); color: var(--bg); }
@@ -326,108 +346,6 @@ body { zoom: var(--z, 1); padding-left: calc(max(16px, env(safe-area-inset-left,
 </div>
 
 <main class="lab">
-  <section class="panel area-now now" aria-live="polite">
-    <div class="now-row">
-      <div style="min-width:0">
-        <div class="chord-name" id="chord-name">—</div>
-        <div class="chord-sub" id="chord-sub"></div>
-      </div>
-      <button class="play-big" id="play" type="button" aria-label="Play chord"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 0.5L9.5 5L1 9.5z"/></svg></button>
-    </div>
-    <div class="alts" id="alts" aria-label="Other names; tap one to use its root"></div>
-    <figure class="octo" id="octo" hidden>
-      <img id="octo-img" alt="Meme: a grinning friend with a hand on your shoulder says, “Bro please. You are not an octopus. Try leaving a note out.”" width="676" height="474">
-      <figcaption><b>That shape isn't playable</b><span id="octo-why"></span></figcaption>
-    </figure>
-  </section>
-
-  <section class="panel area-find" aria-labelledby="find-h">
-    <h2 id="find-h">How do I play…</h2>
-    <div class="text-in">
-      <input id="find-in" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="E(addb6), Bbmaj7, F#m7b5, Sib/Re…" aria-label="Chord name">
-      <button class="btn primary" type="button" id="find-go">Find</button>
-    </div>
-    <div class="err" id="find-err" hidden></div>
-    <div class="find-read" id="find-read" hidden></div>
-    <div class="find-grid" id="find-grid"></div>
-    <div class="row" id="find-more-row" hidden><button class="btn" type="button" id="find-more">Show more</button><span class="hint" id="find-count"></span></div>
-    <div class="hint">Lowercase <b>b</b> = flat (Bb, addb6, m7b5); capital <b>B</b> = the note B (Si), e.g. C/B. Spanish names work too: Sib, Fa#m7, Re/Fa#. Searches the current tuning; tap a shape to put it on the neck and hear it.</div>
-    <div class="find-ex" id="find-ex"></div>
-  </section>
-
-  <section class="panel area-prog" aria-labelledby="prog-h">
-    <div class="row" style="justify-content:space-between">
-      <h2 id="prog-h">Progression</h2>
-      <div class="row tight">
-        <label class="toggle"><input type="checkbox" id="prog-loop"> Loop</label>
-        <button class="btn primary" type="button" id="prog-play">▶ Play</button>
-      </div>
-    </div>
-    <div class="chips" id="prog-chips" aria-label="Chords in the progression"></div>
-    <div class="row tight">
-      <button class="btn" type="button" id="prog-add">+ Add chord on neck</button>
-      <button class="btn" type="button" id="prog-replace">Replace selected</button>
-      <button class="btn" type="button" id="prog-left" aria-label="Move selected chord earlier">←</button>
-      <button class="btn" type="button" id="prog-right" aria-label="Move selected chord later">→</button>
-      <button class="btn" type="button" id="prog-new">New</button>
-    </div>
-    <div class="hint" id="prog-msg" role="status"></div>
-    <div class="slider-row"><label for="prog-bpm">Tempo</label><input type="range" id="prog-bpm" min="40" max="220" step="1"><output id="prog-bpm-o"></output></div>
-    <label class="toggle"><input type="checkbox" id="bg-play"> Keep playing when I switch tabs or lock my phone</label>
-    <div class="field">
-      <span class="eyebrow" id="pat-title">Strum pattern · one bar</span>
-      <div class="row tight">
-        <label class="toggle"><span class="eyebrow">Time</span><select id="prog-meter" aria-label="Time signature"></select></label>
-        <select id="prog-preset" aria-label="Strum pattern preset"></select>
-        <div class="seg" id="seg-sub" role="group" aria-label="Note value"><button type="button" data-v="1">Quarters</button><button type="button" data-v="2">8ths</button><button type="button" data-v="3">Triplets</button><button type="button" data-v="4">16ths</button></div>
-      </div>
-    </div>
-    <div class="steps" id="prog-steps"></div>
-    <div class="hint">Tap a box to change it: <b>↓</b> downstroke, <b>↑</b> upstroke, <b>PM</b> palm-muted chug, <b>✕</b> muted chuck, <b>·</b> rest (the chord keeps ringing). Tap a chord above to select it and see it on the neck.</div>
-    <div class="field">
-      <label class="eyebrow" for="prog-name">Save this progression</label>
-      <div class="text-in">
-        <input id="prog-name" type="text" maxlength="40" autocomplete="off" placeholder="Name it, e.g. Verse">
-        <button class="btn primary" type="button" id="prog-save">Save</button>
-      </div>
-    </div>
-    <div class="row tight">
-      <button class="btn" type="button" id="prog-gp">Download as Guitar Pro file</button>
-      <span class="hint">Tab with chord diagrams, strums, palm mutes and tempo. Opens in Guitar Pro, TuxGuitar, Songsterr and the like.</span>
-    </div>
-    <div class="field" id="progs-wrap">
-      <span class="eyebrow">My progressions</span>
-      <div class="saved-list" id="progs"></div>
-    </div>
-  </section>
-
-  <section class="panel area-sound" aria-labelledby="sound-h">
-    <div class="row" style="justify-content:space-between">
-      <h2 id="sound-h">Sound and pedals</h2>
-      <div class="seg" id="seg-tone" role="group" aria-label="Guitar type"><button type="button" data-v="acoustic">Acoustic</button><button type="button" data-v="electric">Electric</button></div>
-    </div>
-    <label class="field"><span class="eyebrow">Rig</span><select id="rig" aria-label="Ready-made rig"></select></label>
-    <div class="pedals" id="pedals"></div>
-    <div class="chain-line" id="chain-line" aria-live="polite"></div>
-    <div class="row tight"><button class="btn" type="button" id="order-reset">Reset pedal order</button></div>
-    <div class="hint">Tap a pedal to switch it on and show its knobs, then tap ▶ to hear it. Use ↑ ↓ to move a pedal earlier or later in the chain; the numbers show the order the sound goes through. Picking a rig also puts the pedals back in the standard order.</div>
-  </section>
-
-  <section class="panel area-play" aria-labelledby="play-h">
-    <h2 id="play-h">Playback</h2>
-    <div class="seg" id="seg-play" role="group" aria-label="Playback style">
-      <button type="button" data-v="down">Strum ↓</button><button type="button" data-v="up">Strum ↑</button><button type="button" data-v="arp">Arpeggio ↑</button><button type="button" data-v="arpdown">Arpeggio ↓</button><button type="button" data-v="arpud">Arp ↑↓</button>
-    </div>
-    <div class="slider-row" id="speed-strum"><label for="spread">Strum speed</label><input type="range" id="spread" min="4" max="140" step="1"><output id="spread-o"></output></div>
-    <div class="slider-row" id="speed-arp"><label for="bpm">Tempo</label><input type="range" id="bpm" min="40" max="240" step="1"><output id="bpm-o"></output></div>
-    <div class="slider-row"><label for="ring">Ring</label><input type="range" id="ring" min="0.5" max="6" step="0.1"><output id="ring-o"></output></div>
-    <div class="slider-row" id="oct-row"><label for="octMix">Octave strings</label><input type="range" id="octMix" min="0" max="200" step="5"><output id="octMix-o"></output></div>
-    <div class="row">
-      <label class="toggle"><input type="checkbox" id="tap-play"> Play notes as I tap</label>
-      <label class="toggle"><input type="checkbox" id="haze"> Room reverb</label>
-    </div>
-  </section>
-
   <section class="panel area-board board-wrap" aria-label="Fretboard">
     <div class="board-tools">
       <div class="grp">
@@ -448,57 +366,161 @@ body { zoom: var(--z, 1); padding-left: calc(max(16px, env(safe-area-inset-left,
     <div class="hint">Tap a fret to place a note; tap it again to mute the string. The top row is the open string.</div>
   </section>
 
-  <section class="panel area-tuning" aria-labelledby="tuning-h">
-    <h2 id="tuning-h">Instrument and tuning</h2>
-    <div class="seg" id="seg-inst" role="group" aria-label="Instrument">
-      <button type="button" data-v="g6">6-string</button><button type="button" data-v="g7">7-string</button><button type="button" data-v="g12">12-string</button><button type="button" data-v="b4">Bass 4</button><button type="button" data-v="b5">Bass 5</button>
-    </div>
-    <div class="row">
-      <label class="field"><span class="eyebrow">Preset</span><select id="preset"></select></label>
-    </div>
-    <div class="strings-ed" id="strings-ed"></div>
-    <div class="text-in">
-      <input id="tuning-in" type="text" autocomplete="off" spellcheck="false" aria-label="Tuning, low string first, for example D#2 A#2 D#3 F#3 G#3 D#4">
-      <button class="btn" type="button" id="tuning-apply">Set tuning</button>
-    </div>
-    <div class="err" id="tuning-err" hidden></div>
-    <div class="hint" id="tuning-hint">Low string first. Octave numbers are optional: without one, each note lands closest to the string's current pitch.</div>
-    <div class="field">
-      <label class="eyebrow" for="tname">Save this tuning</label>
+  <div class="desk">
+    <section class="panel area-now now" aria-live="polite">
+      <div class="now-row">
+        <div style="min-width:0">
+          <div class="chord-name" id="chord-name">—</div>
+          <div class="chord-sub" id="chord-sub"></div>
+        </div>
+        <button class="play-big" id="play" type="button" aria-label="Play chord"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 0.5L9.5 5L1 9.5z"/></svg></button>
+      </div>
+      <div class="alts" id="alts" aria-label="Other names; tap one to use its root"></div>
+      <div class="octo" id="octo" hidden>
+        <button class="octo-pic" id="octo-pic" type="button" aria-expanded="false" aria-label="Show the meme bigger"><img id="octo-img" alt="Meme: a grinning friend with a hand on your shoulder says, “Bro please. You are not an octopus. Try leaving a note out.”" width="676" height="474"></button>
+        <div class="octo-txt"><b id="octo-t"></b><span id="octo-why"></span></div>
+      </div>
+    </section>
+
+    <section class="panel area-find" aria-labelledby="find-h">
+      <h2 id="find-h">How do I play…</h2>
       <div class="text-in">
-        <input id="tname" type="text" maxlength="40" autocomplete="off" placeholder="Name it, e.g. Your Fault">
-        <button class="btn primary" type="button" id="tsave">Save tuning</button>
+        <input id="find-in" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="E(addb6), Bbmaj7, F#m7b5, Sib/Re…" aria-label="Chord name">
+        <button class="btn primary" type="button" id="find-go">Find</button>
       </div>
-      <div class="hint" id="tsave-msg" role="status"></div>
-    </div>
-    <div class="field" id="mytun-wrap">
-      <span class="eyebrow">My tunings</span>
-      <div class="saved-list" id="mytun"></div>
-    </div>
-  </section>
+      <div class="err" id="find-err" hidden></div>
+      <div class="find-read" id="find-read" hidden></div>
+      <div class="find-grid" id="find-grid"></div>
+      <div class="row" id="find-more-row" hidden><button class="btn" type="button" id="find-more">Show more</button><span class="hint" id="find-count"></span></div>
+      <div class="hint">Lowercase <b>b</b> = flat (Bb, addb6, m7b5); capital <b>B</b> = the note B (Si), e.g. C/B. Spanish names work too: Sib, Fa#m7, Re/Fa#. Searches the current tuning; tap a shape to put it on the neck and hear it.</div>
+      <div class="find-ex" id="find-ex"></div>
+    </section>
 
-  <section class="panel area-view" aria-labelledby="view-h">
-    <h2 id="view-h">Display</h2>
-    <div class="row">
-      <div class="field"><span class="eyebrow">Show</span>
-        <div class="seg" id="seg-mode" role="group" aria-label="Labels on the dots"><button type="button" data-v="notes">Notes</button><button type="button" data-v="intervals">Intervals</button><button type="button" data-v="dots">Dots</button></div>
+    <section class="panel area-prog" aria-labelledby="prog-h">
+      <div class="row" style="justify-content:space-between">
+        <h2 id="prog-h">Progression</h2>
+        <div class="row tight">
+          <label class="toggle"><input type="checkbox" id="prog-loop"> Loop</label>
+          <button class="btn primary" type="button" id="prog-play">▶ Play</button>
+        </div>
       </div>
-      <div class="field"><span class="eyebrow">Spelling</span>
-        <div class="seg" id="seg-spell" role="group" aria-label="Spelling"><button type="button" class="sym" data-v="sharp" aria-label="Sharps">♯</button><button type="button" class="sym" data-v="flat" aria-label="Flats">♭</button></div>
+      <div class="chips" id="prog-chips" aria-label="Chords in the progression"></div>
+      <div class="row tight">
+        <button class="btn" type="button" id="prog-add">+ Add chord on neck</button>
+        <button class="btn" type="button" id="prog-replace">Replace selected</button>
+        <button class="btn" type="button" id="prog-left" aria-label="Move selected chord earlier">←</button>
+        <button class="btn" type="button" id="prog-right" aria-label="Move selected chord later">→</button>
+        <button class="btn" type="button" id="prog-new">New</button>
       </div>
-      <div class="field"><span class="eyebrow">Frets</span>
-        <div class="seg" id="seg-frets" role="group" aria-label="Number of frets"><button type="button" data-v="12">12</button><button type="button" data-v="15">15</button><button type="button" data-v="24">24</button></div>
+      <div class="hint" id="prog-msg" role="status"></div>
+      <div class="slider-row"><label for="prog-bpm">Tempo</label><input type="range" id="prog-bpm" min="40" max="220" step="1"><output id="prog-bpm-o"></output></div>
+      <label class="toggle"><input type="checkbox" id="bg-play"> Keep playing when I switch tabs or lock my phone</label>
+      <div class="field">
+        <span class="eyebrow" id="pat-title">Strum pattern · one bar</span>
+        <div class="row tight">
+          <label class="toggle"><span class="eyebrow">Time</span><select id="prog-meter" aria-label="Time signature"></select></label>
+          <select id="prog-preset" aria-label="Strum pattern preset"></select>
+          <div class="seg" id="seg-sub" role="group" aria-label="Note value"><button type="button" data-v="1">Quarters</button><button type="button" data-v="2">8ths</button><button type="button" data-v="3">Triplets</button><button type="button" data-v="4">16ths</button></div>
+        </div>
       </div>
-    </div>
-    <label class="toggle"><input type="checkbox" id="ghosts"> Show the chord's notes across the whole neck</label>
-    <label class="toggle"><input type="checkbox" id="octo-on"> Warn me when a shape is impossible to fret</label>
-  </section>
+      <div class="steps" id="prog-steps"></div>
+      <div class="hint">Tap a box to change it: <b>↓</b> downstroke, <b>↑</b> upstroke, <b>PM</b> palm-muted chug, <b>✕</b> muted chuck, <b>·</b> rest (the chord keeps ringing). Tap a chord above to select it and see it on the neck.</div>
+      <div class="field">
+        <label class="eyebrow" for="prog-name">Save this progression</label>
+        <div class="text-in">
+          <input id="prog-name" type="text" maxlength="40" autocomplete="off" placeholder="Name it, e.g. Verse">
+          <button class="btn primary" type="button" id="prog-save">Save</button>
+        </div>
+      </div>
+      <div class="row tight">
+        <button class="btn" type="button" id="prog-gp">Download as Guitar Pro file</button>
+        <span class="hint">Tab with chord diagrams, strums, palm mutes and tempo. Opens in Guitar Pro, TuxGuitar, Songsterr and the like.</span>
+      </div>
+      <div class="field" id="progs-wrap">
+        <span class="eyebrow">My progressions</span>
+        <div class="saved-list" id="progs"></div>
+      </div>
+    </section>
 
-  <section class="panel area-saved" aria-labelledby="saved-h">
-    <div class="row" style="justify-content:space-between"><h2 id="saved-h">Saved voicings</h2><button class="btn primary" type="button" id="save">Save this voicing</button></div>
-    <div class="saved-list" id="saved"></div>
-    <div class="hint" id="saved-hint">Saved voicings keep their tuning and stay in this browser.</div>
-  </section>
+    <section class="panel area-play" aria-labelledby="play-h">
+      <h2 id="play-h">Playback</h2>
+      <div class="seg" id="seg-play" role="group" aria-label="Playback style">
+        <button type="button" data-v="down">Strum ↓</button><button type="button" data-v="up">Strum ↑</button><button type="button" data-v="arp">Arpeggio ↑</button><button type="button" data-v="arpdown">Arpeggio ↓</button><button type="button" data-v="arpud">Arp ↑↓</button>
+      </div>
+      <div class="slider-row" id="speed-strum"><label for="spread">Strum speed</label><input type="range" id="spread" min="4" max="140" step="1"><output id="spread-o"></output></div>
+      <div class="slider-row" id="speed-arp"><label for="bpm">Tempo</label><input type="range" id="bpm" min="40" max="240" step="1"><output id="bpm-o"></output></div>
+      <div class="slider-row"><label for="ring">Ring</label><input type="range" id="ring" min="0.5" max="6" step="0.1"><output id="ring-o"></output></div>
+      <div class="slider-row" id="oct-row"><label for="octMix">Octave strings</label><input type="range" id="octMix" min="0" max="200" step="5"><output id="octMix-o"></output></div>
+      <div class="row">
+        <label class="toggle"><input type="checkbox" id="tap-play"> Play notes as I tap</label>
+        <label class="toggle"><input type="checkbox" id="haze"> Room reverb</label>
+      </div>
+    </section>
+
+    <section class="panel area-sound" aria-labelledby="sound-h">
+      <div class="row" style="justify-content:space-between">
+        <h2 id="sound-h">Sound and pedals</h2>
+        <div class="seg" id="seg-tone" role="group" aria-label="Guitar type"><button type="button" data-v="acoustic">Acoustic</button><button type="button" data-v="electric">Electric</button></div>
+      </div>
+      <label class="field"><span class="eyebrow">Rig</span><select id="rig" aria-label="Ready-made rig"></select></label>
+      <div class="pedals" id="pedals"></div>
+      <div class="chain-line" id="chain-line" aria-live="polite"></div>
+      <div class="row tight"><button class="btn" type="button" id="order-reset">Reset pedal order</button></div>
+      <div class="hint">Tap a pedal to switch it on and show its knobs, then tap ▶ to hear it. Use ↑ ↓ to move a pedal earlier or later in the chain; the numbers show the order the sound goes through. Picking a rig also puts the pedals back in the standard order.</div>
+    </section>
+
+    <section class="panel area-tuning" aria-labelledby="tuning-h">
+      <h2 id="tuning-h">Instrument and tuning</h2>
+      <div class="seg" id="seg-inst" role="group" aria-label="Instrument">
+        <button type="button" data-v="g6">6-string</button><button type="button" data-v="g7">7-string</button><button type="button" data-v="g12">12-string</button><button type="button" data-v="b4">Bass 4</button><button type="button" data-v="b5">Bass 5</button>
+      </div>
+      <div class="row">
+        <label class="field"><span class="eyebrow">Preset</span><select id="preset"></select></label>
+      </div>
+      <div class="strings-ed" id="strings-ed"></div>
+      <div class="text-in">
+        <input id="tuning-in" type="text" autocomplete="off" spellcheck="false" aria-label="Tuning, low string first, for example D#2 A#2 D#3 F#3 G#3 D#4">
+        <button class="btn" type="button" id="tuning-apply">Set tuning</button>
+      </div>
+      <div class="err" id="tuning-err" hidden></div>
+      <div class="hint" id="tuning-hint">Low string first. Octave numbers are optional: without one, each note lands closest to the string's current pitch.</div>
+      <div class="field">
+        <label class="eyebrow" for="tname">Save this tuning</label>
+        <div class="text-in">
+          <input id="tname" type="text" maxlength="40" autocomplete="off" placeholder="Name it, e.g. Your Fault">
+          <button class="btn primary" type="button" id="tsave">Save tuning</button>
+        </div>
+        <div class="hint" id="tsave-msg" role="status"></div>
+      </div>
+      <div class="field" id="mytun-wrap">
+        <span class="eyebrow">My tunings</span>
+        <div class="saved-list" id="mytun"></div>
+      </div>
+    </section>
+
+    <section class="panel area-view" aria-labelledby="view-h">
+      <h2 id="view-h">Display</h2>
+      <div class="row">
+        <div class="field"><span class="eyebrow">Show</span>
+          <div class="seg" id="seg-mode" role="group" aria-label="Labels on the dots"><button type="button" data-v="notes">Notes</button><button type="button" data-v="intervals">Intervals</button><button type="button" data-v="dots">Dots</button></div>
+        </div>
+        <div class="field"><span class="eyebrow">Spelling</span>
+          <div class="seg" id="seg-spell" role="group" aria-label="Spelling"><button type="button" class="sym" data-v="sharp" aria-label="Sharps">♯</button><button type="button" class="sym" data-v="flat" aria-label="Flats">♭</button></div>
+        </div>
+        <div class="field"><span class="eyebrow">Frets</span>
+          <div class="seg" id="seg-frets" role="group" aria-label="Number of frets"><button type="button" data-v="12">12</button><button type="button" data-v="15">15</button><button type="button" data-v="24">24</button></div>
+        </div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="ghosts"> Show the chord's notes across the whole neck</label>
+      <label class="toggle"><input type="checkbox" id="octo-on"> Warn me when a shape is impossible to fret</label>
+    </section>
+
+    <section class="panel area-saved" aria-labelledby="saved-h">
+      <div class="row" style="justify-content:space-between"><h2 id="saved-h">Saved voicings</h2><button class="btn primary" type="button" id="save">Save this voicing</button></div>
+      <div class="saved-list" id="saved"></div>
+      <div class="hint" id="saved-hint">Saved voicings keep their tuning and stay in this browser.</div>
+    </section>
+  </div>
 </main>
 <footer>Chord names are worked out from the notes, so unusual voicings get several readings; tap one to choose the root. Sound is a synthesized plucked string. 12-string courses play an octave or unison pair.</footer>
 
@@ -1049,12 +1071,13 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
   // More forgiving than the chord finder (which looks for comfortable shapes): four fingers, the index can barre the
   // lowest fret (no open string under the barre), the thumb can wrap over to the lowest string, and a stretch of up to
   // 5 frets (6 from the 12th fret up, where frets are narrower).
+  // what makes a shape impossible: { kind: 'stretch', minF, maxF, span } or { kind: 'fingers', fingers, barre }, or null
   function unplayable(fr) {
     const idx = fr.map((f, i) => f !== null && f > 0 ? i : null).filter(i => i !== null);
     if (!idx.length) return null;
     const fs = idx.map(i => fr[i]), minF = Math.min(...fs), maxF = Math.max(...fs);
-    const limit = minF >= 12 ? 6 : 5;
-    if (maxF - minF > limit) return `It needs a stretch from fret ${minF} to fret ${maxF}: that's ${maxF - minF + 1} frets wide.`;
+    const limit = minF >= 12 ? 6 : 5;   // frets are closer together up high
+    if (maxF - minF > limit) return { kind: 'stretch', minF, maxF, span: maxF - minF + 1 };
     // one finger can bar every note at the lowest fret (index) and every note at the highest fret (pinky, like a
     // Cerati-style high pinky bar), as long as no open string, or one fretted lower, sits under the bar
     const barreAt = f => {
@@ -1063,26 +1086,52 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
       for (let i = at[0]; i <= at[at.length - 1]; i++) if (fr[i] !== null && fr[i] < f) return false;
       return true;
     };
-    const lowBar = barreAt(minF), highBar = maxF > minF && barreAt(maxF), barre = lowBar || highBar;
+    const lowBar = barreAt(minF), highBar = maxF > minF && barreAt(maxF);
     let fingers = idx.length;
     if (lowBar) fingers -= idx.filter(i => fr[i] === minF).length - 1;
     if (highBar) fingers -= idx.filter(i => fr[i] === maxF).length - 1;
     // the thumb wrapped over the neck takes the low string, but then the fingers can only reach about 3 frets past it
     const thumb = fr[0] !== null && fr[0] > 0 && fr[0] <= minF + 1 && maxF - fr[0] <= 3 && !(lowBar && fr[0] === minF) && !(highBar && fr[0] === maxF) ? 1 : 0;
-    if (fingers > 4 + thumb) return `It needs ${fingers} fingers on the frets${barre ? ', even with a barre' : ''}. A hand has four (plus a thumb for the low string).`;
+    if (fingers > 4 + thumb) return { kind: 'fingers', fingers, barre: lowBar || highBar };
     return null;
   }
+
+  // the copy: a different nickname every time a new impossible shape turns up
+  const NICKNAMES = ['buddy', 'blud', 'brochacho', 'brochacha', 'broski', 'freund', 'amigo', 'amiga', 'pal', 'mate', 'gaffer', 'chief', 'frère', 'soeur', 'my liege'];
+  function pickNickname(not) {
+    let n;
+    do n = NICKNAMES[Math.floor(Math.random() * NICKNAMES.length)]; while (n === not);
+    return n;
+  }
+  function playabilityWarning(p, nickname) {
+    const head = `That shape isn't playable, ${nickname}.`;
+    const body = p.kind === 'stretch'
+      ? `It needs a stretch from fret ${p.minF} to fret ${p.maxF}, and that's ${p.span} frets wide, Allan Holdsworth.`
+      : `It needs ${p.fingers} fingers on the frets, even with a barre. A hand has four (and a thumb for the low string).`;
+    return { head, body };
+  }
+
   // shown under the chord name for as long as the current shape is impossible; fades in each time it appears
+  let octoKey = '', octoNick = '';
   function handCheck() {
-    const why = st.octopus !== false ? unplayable(st.frets) : null, o = $('octo');
-    if (why) {
+    const p = st.octopus !== false ? unplayable(st.frets) : null, o = $('octo');
+    if (p) {
       const img = $('octo-img');
       if (!img.getAttribute('src')) img.src = 'octopus.jpg';
+      const key = st.frets.join('-');
+      if (key !== octoKey) { octoKey = key; octoNick = pickNickname(octoNick); }
+      const w = playabilityWarning(p, octoNick);
+      $('octo-t').textContent = w.head;
       // one special case he asked for: Cerati's pinky bar with the G string pushed up a fret
-      $('octo-why').textContent = (st.frets.join('-') === '4-6-6-7-8-8' ? "You're not Cerati, lil bro. " : '') + why;
-    }
-    o.hidden = !why;
+      $('octo-why').textContent = (key === '4-6-6-7-8-8' ? "You're not Cerati, lil bro. " : '') + w.body;
+    } else { octoKey = ''; o.classList.remove('big'); $('octo-pic').setAttribute('aria-expanded', 'false'); }
+    o.hidden = !p;
   }
+  $('octo-pic').addEventListener('click', () => {
+    const big = $('octo').classList.toggle('big');
+    $('octo-pic').setAttribute('aria-expanded', String(big));
+    $('octo-pic').setAttribute('aria-label', big ? 'Show the meme smaller' : 'Show the meme bigger');
+  });
 
   /* ---------- tuning editor ---------- */
   function renderPresets() {

@@ -24,12 +24,25 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   by an <audio> element (`routeOut`) so iOS/Chrome keep it alive when hidden; the scheduler looks 4 s ahead while hidden;
   Media Session gives lock-screen controls; the direct output is restored after stop. Don't rebuild the AudioContext on
   return while a background progression is still running.
-  Impossible-shape check (`unplayable`, `handCheck`): after a tap or "Set shape", if the fretted notes span more than 5 frets
-  (6 from fret 12 up) or need more than 4 fingers (a barre at the lowest fret counts as one, and so does a bar at the highest fret, e.g. Cerati's 4-6-6-8-8-8 pinky bar; a thumb over the low string adds one),
-  `#octo` (inside the chord-name panel) shows `octopus.jpg` (his meme) with the reason, fading in slowly; it stays as long as
-  the shape is impossible and hides when it isn't (`handCheck()` runs from `refresh()`). Switch in Display (`st.octopus`).
-  Easter egg he asked for: the exact shape 4-6-6-7-8-8 prefixes the reason with "You're not Cerati, lil bro."
-  He asked for this placement instead of a popup, which felt like a jumpscare.
+  Impossible-shape check: `unplayable(frets)` returns `{kind:'stretch', minF, maxF, span}` or `{kind:'fingers', fingers, barre}`
+  or null. A shape is impossible if the fretted notes span more than 5 frets (6 from fret 12 up) or need more than 4 fingers
+  (a barre at the lowest fret counts as one, and so does a bar at the highest fret, e.g. Cerati's 4-6-6-8-8-8 pinky bar; a thumb
+  over the low string adds one). `playabilityWarning(p, nickname)` writes his copy: head "That shape isn't playable, ${nickname}.",
+  body for stretch "It needs a stretch from fret X to fret Y, and that's N frets wide, Allan Holdsworth." or for fingers
+  "It needs N fingers on the frets, even with a barre. A hand has four (and a thumb for the low string)." `NICKNAMES` is his list;
+  a new one is picked (never the same twice in a row) each time a different impossible shape appears. Easter egg: the exact shape
+  4-6-6-7-8-8 prefixes the body with "You're not Cerati, lil bro." `#octo` is a fixed-height strip inside the chord readout
+  (meme thumbnail left, text right, terracotta edge, slow fade-in); tapping the thumbnail expands it. It stays while the shape is
+  impossible (`handCheck()` runs from `refresh()`). Switch in Display (`st.octopus`). He didn't want a popup (it felt like a jumpscare).
+- Look (his brief: "a tactile piece of music engineering software built by a human guitarist, Oolimo meets a hardware rack",
+  nothing like the generic dark-mode SaaS look). Fonts: Fira Sans (body), Fira Sans Condensed (headings, chord names), IBM Plex Mono
+  only for notes, frets, intervals, tunings and tempo. Dark palette: matte charcoal `#16171a`, panels `#1c1d21` with 1px matte borders
+  `#2c2f36`, no glows; root/active notes amber `#e5a93c`, other notes cream (`--ink` `#ece4d0`), parchment `--accent` `#cdbb94` for
+  selection, terracotta `--warn` `#d9534f` for warnings and dead notes. Light mode is the same idea on parchment. Same tokens in
+  songs.html and dsharp-chart.html. Corners are small (8px panels, 4–6px badges).
+- Analyzer layout: `.lab` is two columns, the board on the left and `.desk` on the right. On wide screens the board is sticky
+  (scrolls inside itself if the screen is short) and the chord readout is sticky at the top of `.desk`, so fretting never moves the
+  readout. At ≤ 860px `.desk` is `display: contents` and the grid areas order the panels (readout sticky on top, then the board).
 - `songs.html` — Songs (the former Guitar Pro trial, approved and ported). Reads GP3–8/GPX/MusicXML with alphaTab 1.8.4 from
   jsDelivr and plays every track through the Analyzer's synth and rigs (build.py copies those code blocks out of shell.html,
   so keep the marker lines it slices on: `const DEFAULT_ORDER`, `function freshProg()`, `const pct = v =>`, `function soundChanged()`,
