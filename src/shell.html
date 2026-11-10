@@ -24,6 +24,13 @@
   --font-body: "Fira Sans", "PT Sans", -apple-system, "Segoe UI", sans-serif;
   --font-data: "IBM Plex Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
   --warn: #b4443f; --warn-soft: rgba(180, 68, 63, 0.12);
+  /* the readout screen looks the same in both themes, like a real one */
+  --lcd-bg: #12110d; --lcd-ink: #f2b84b; --lcd-dim: #9a8a63; --lcd-edge: #050504;
+  /* maple neck, black dots, nickel frets, bone nut */
+  --board: #e2c896; --grain: rgba(140, 90, 30, 0.10); --grain-hi: rgba(255, 255, 255, 0.12);
+  --fretwire: #a7a7a1; --fret-shade: rgba(60, 40, 10, 0.35); --nut: #f1e8d0;
+  --str-plain: #8f8f8a; --str-wound-a: #9a8257; --str-wound-b: #6d5b3b; --str-shadow: rgba(60, 40, 10, 0.35);
+  --inlay-a: #3a332c; --inlay-b: #1f1b17;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -31,6 +38,11 @@
     --line: #2c2f36; --faint: #25272d; --wood: #1a1b1f; --string: #6f6a60;
     --accent: #cdbb94; --accent-soft: rgba(205, 187, 148, 0.14); --root: #e5a93c; --on-root: #1b1408;
     --warn: #d9534f; --warn-soft: rgba(217, 83, 79, 0.15); color-scheme: dark;
+    --lcd-bg: #12110d; --lcd-ink: #f2b84b; --lcd-dim: #9a8a63; --lcd-edge: #050504;
+    --board: #2b1e16; --grain: rgba(0, 0, 0, 0.22); --grain-hi: rgba(255, 220, 180, 0.035);
+    --fretwire: #b9b8b1; --fret-shade: rgba(0, 0, 0, 0.55); --nut: #e9dfc4;
+    --str-plain: #cfcfc9; --str-wound-a: #c2a877; --str-wound-b: #7d6a48; --str-shadow: rgba(0, 0, 0, 0.6);
+    --inlay-a: #fbf6ea; --inlay-b: #b9ae95;
   }
 }
 :root[data-theme="dark"] {
@@ -38,6 +50,11 @@
   --line: #2c2f36; --faint: #25272d; --wood: #1a1b1f; --string: #6f6a60;
   --accent: #cdbb94; --accent-soft: rgba(205, 187, 148, 0.14); --root: #e5a93c; --on-root: #1b1408;
   --warn: #d9534f; --warn-soft: rgba(217, 83, 79, 0.15); color-scheme: dark;
+  --lcd-bg: #12110d; --lcd-ink: #f2b84b; --lcd-dim: #9a8a63; --lcd-edge: #050504;
+  --board: #2b1e16; --grain: rgba(0, 0, 0, 0.22); --grain-hi: rgba(255, 220, 180, 0.035);
+  --fretwire: #b9b8b1; --fret-shade: rgba(0, 0, 0, 0.55); --nut: #e9dfc4;
+  --str-plain: #cfcfc9; --str-wound-a: #c2a877; --str-wound-b: #7d6a48; --str-shadow: rgba(0, 0, 0, 0.6);
+  --inlay-a: #fbf6ea; --inlay-b: #b9ae95;
 }
 * { box-sizing: border-box; }
 body {
@@ -50,13 +67,13 @@ button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 h1, h2 { font-family: var(--font-display); font-weight: 700; margin: 0; letter-spacing: -0.01em; }
-h1 { font-size: 22px; }
+h1 { font-size: 13px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 h2 { font-size: 17px; }
 .eyebrow { font-family: var(--font-display); font-weight: 600; font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 .muted { color: var(--muted); }
 
 .top { max-width: calc(1120px / var(--z, 1)); margin: 0 auto 16px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; justify-content: space-between; }
-.top .tuning-name { font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--accent); }
+.top .tuning-name { font-family: var(--font-data); font-weight: 600; font-size: 15px; letter-spacing: 0.1em; color: var(--root); }
 
 .lab {
   max-width: calc(1120px / var(--z, 1)); margin: 0 auto; display: grid; gap: 14px;
@@ -78,6 +95,8 @@ h2 { font-size: 17px; }
 .area-saved { grid-area: saved; }
 .area-find { grid-area: find; }
 .area-prog { grid-area: prog; }
+.area-lib { grid-area: lib; }
+.area-arr { grid-area: arr; }
 .area-sound { grid-area: sound; }
 
 /* pedalboard */
@@ -150,19 +169,27 @@ h2 { font-size: 17px; }
 .area-board { grid-area: board; }
 
 /* chord readout */
-.now { display: grid; gap: 8px; padding-block: 12px; }
-.now-row { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
-.chord-name { font-family: var(--font-display); font-weight: 700; font-size: clamp(28px, 4.4vw, 38px); line-height: 1.05; letter-spacing: -0.005em; overflow-wrap: anywhere; min-width: 0; }
-.chord-sub { font-family: var(--font-data); font-size: 12.5px; color: var(--muted); }
+.now { display: grid; gap: 10px; padding: 16px 16px 14px; }
+.now-row { display: flex; align-items: stretch; gap: 12px; justify-content: space-between; }
+.lcd { flex: 1; min-width: 0; display: grid; gap: 5px; align-content: center; padding: 10px 14px 11px; border-radius: 3px;
+  background-color: var(--lcd-bg); border: 1px solid var(--lcd-edge);
+  background-image: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 3px);
+  box-shadow: inset 0 2px 7px rgba(0, 0, 0, 0.85), 0 1px 0 var(--plate-sheen); color: var(--lcd-ink); }
+.chord-name { font-family: var(--font-display); font-weight: 600; font-size: clamp(28px, 4.4vw, 38px); line-height: 1.05; letter-spacing: 0.005em; color: var(--lcd-ink); overflow-wrap: anywhere; min-width: 0; }
+.chord-sub { font-family: var(--font-data); font-size: 12.5px; color: var(--lcd-dim); }
 .play-big {
-  flex: none; width: 52px; height: 52px; border-radius: 50%; border: 0; background: var(--ink); color: var(--bg);
-  display: grid; place-items: center;
+  flex: none; width: 64px; border-radius: 4px; display: grid; place-items: center;
+  background: linear-gradient(180deg, var(--cap-top), var(--cap-bot)); color: var(--cap-ink);
+  border: 1px solid var(--cap-edge); border-bottom-width: 3px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 .play-big svg { width: 20px; height: 20px; fill: currentColor; margin-left: 3px; }
-.play-big:active { transform: scale(0.96); }
-.alts { display: flex; flex-wrap: wrap; gap: 5px; }
-.alt { border: 1px solid var(--line); background: var(--faint); border-radius: 4px; padding: 2px 8px; font-family: var(--font-display); font-weight: 500; font-size: 14.5px; color: var(--muted); }
-.alt[aria-pressed="true"] { border-color: var(--root); color: var(--root); background: var(--surface); }
+.play-big:active { transform: translateY(2px); border-bottom-width: 1px; margin-bottom: 2px; }
+.alts { display: flex; flex-wrap: wrap; gap: 3px 0; align-items: baseline; }
+.alts:not(:empty)::before { content: "also"; font-family: var(--font-display); font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--lcd-dim); opacity: 0.75; margin-right: 10px; }
+.alt { border: 0; border-left: 1px solid rgba(242, 184, 75, 0.22); background: transparent; border-radius: 0; padding: 0 9px; font-family: var(--font-display); font-weight: 500; font-size: 14px; color: var(--lcd-dim); }
+.alt:first-child { border-left: 0; padding-left: 0; }
+.alt:hover { color: var(--lcd-ink); }
+.alt[aria-pressed="true"] { color: var(--lcd-ink); text-decoration: underline; text-underline-offset: 3px; }
 
 /* segmented controls */
 .row { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
@@ -209,18 +236,22 @@ select { border: 1px solid var(--line); background: var(--bg); border-radius: 9p
 .fr { position: relative; }
 .fr .num { font-family: var(--font-data); font-size: 11px; color: var(--muted); text-align: right; padding-right: 8px; }
 .fr.open .num { font-size: 10px; }
-.fr:not(.open) .cells { background: var(--wood); }
-.fr.open { border-bottom: 5px solid var(--ink); }
-.fr:not(.open):not(.last) { border-bottom: 1.5px solid var(--line); }
+.fr:not(.open) .cells { background: var(--board); }
+.fr.open { border-bottom: 0; }
+.fr.open .cell { box-shadow: inset 0 -7px 0 var(--nut), inset 0 -8px 0 rgba(0, 0, 0, 0.35); }
+.fr:not(.open):not(.last) .cell { box-shadow: inset 0 -1px 0 var(--fret-shade), inset 0 -3px 0 var(--fretwire), inset 0 -4px 0 rgba(255, 255, 255, 0.25); }
 .cells { display: contents; }
 .cell { position: relative; border: 0; background: transparent; padding: 0; height: var(--h); display: grid; place-items: center; touch-action: manipulation; }
-.fr:not(.open) .cell { background: var(--wood); }
-.fr:not(.open) .cell::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: var(--sw); transform: translateX(-50%); background: var(--string); }
-.course .fr:not(.open) .cell::before { box-shadow: 4px 0 0 0 var(--string); transform: translateX(-3px); }
+.fr:not(.open) .cell { background-color: var(--board);
+  background-image: repeating-linear-gradient(90deg, var(--grain) 0 1px, transparent 1px 4px, var(--grain-hi) 4px 5px, transparent 5px 9px, var(--grain) 9px 11px, transparent 11px 17px); }
+.fr:not(.open) .cell::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: var(--sw); transform: translateX(-50%); background: var(--str-plain); box-shadow: 1px 0 1px var(--str-shadow); z-index: 1; }
+.fr:not(.open) .cell.w::before { background: repeating-linear-gradient(180deg, var(--str-wound-a) 0 1px, var(--str-wound-b) 1px 2px); }
+.course .fr:not(.open) .cell::before { box-shadow: 4px 0 0 0 var(--str-plain), 1px 0 1px var(--str-shadow); transform: translateX(-3px); }
 .cell:hover .dot.empty { opacity: 1; }
 .dot { position: relative; z-index: 2; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-data); font-weight: 700; font-size: 12px; line-height: 1; }
-.dot.on { background: var(--ink); color: var(--on-ink); }
+.dot.on { background: var(--ink); color: var(--on-ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.55), inset 0 -2px 0 rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
 .dot.on.root { background: var(--root); color: var(--on-root); }
+.dot.ring { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
 .dot.ring { background: var(--surface); border: 2px solid var(--accent); color: var(--accent); }
 .dot.ring.root { border-color: var(--root); color: var(--root); }
 .dot.ghost { width: 24px; height: 24px; background: var(--faint); color: var(--muted); font-size: 10px; font-weight: 500; }
@@ -228,11 +259,44 @@ select { border: 1px solid var(--line); background: var(--bg); border-radius: 9p
 .dot.mute { color: var(--muted); font-family: var(--font-body); font-weight: 400; font-size: 18px; }
 .dot.empty { width: 16px; height: 16px; opacity: 0; border: 1.5px dashed var(--muted); }
 .dot.small { font-size: 9.5px; }
-.inlay { position: absolute; z-index: 1; width: 12px; height: 12px; border-radius: 50%; background: var(--line); top: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+.inlay { position: absolute; z-index: 1; width: 13px; height: 13px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--inlay-a), var(--inlay-b) 80%); box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.3); top: 50%; transform: translate(-50%, -50%); pointer-events: none; }
 .shape-line { font-family: var(--font-data); font-size: 14px; letter-spacing: 0.04em; }
 
 /* saved */
 .saved-list { display: grid; gap: 6px; }
+.saved-list.scroll { max-height: 330px; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; scrollbar-width: thin; }
+.saved-item.prg { grid-template-columns: minmax(0, 1fr) auto auto auto; }
+.saved-item.prg .meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+.saved-item select.mv { max-width: 118px; font-size: 12px; padding: 2px 4px; }
+.saved-item .tag { font-family: var(--font-display); font-weight: 600; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--root); margin-right: 6px; }
+.saved-item .ask { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; color: var(--warn); }
+.folders { display: flex; flex-wrap: wrap; gap: 5px; }
+.folders button { border: 1px solid var(--line); background: var(--bg); border-radius: 4px; padding: 3px 9px; font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: baseline; }
+.folders button .n { font-family: var(--font-data); font-size: 10.5px; }
+.folders button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.folders button.add { border-style: dashed; }
+.fold-edit { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.fold-edit input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 5px 9px; }
+.parts { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.parts:empty { display: none; }
+.part { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; background: var(--bg); }
+.part.playing { border-color: var(--root); box-shadow: inset 3px 0 0 var(--root); }
+.part .pn { width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); font-family: var(--font-data); font-size: 12px; color: var(--muted); }
+.part .pn:hover { color: var(--root); border-color: var(--root); }
+.part select { min-width: 0; width: 100%; padding: 4px 6px; }
+.part .times { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.part .times button { width: 26px; height: 28px; border: 0; background: var(--surface); }
+.part .times output { font-family: var(--font-data); font-size: 12.5px; min-width: 30px; text-align: center; }
+.part .acts { display: inline-flex; gap: 2px; }
+.part .acts button { width: 28px; height: 28px; border: 0; background: transparent; color: var(--muted); border-radius: 4px; }
+.part .acts button:hover { background: var(--faint); color: var(--ink); }
+.part .acts button:disabled { opacity: 0.3; }
+.arr-now { font-family: var(--font-data); font-size: 12.5px; color: var(--root); }
+.arr-now:empty { display: none; }
+@media (max-width: 520px) {
+  .part { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .part .acts { grid-column: 2 / -1; justify-content: flex-end; }
+}
 .saved-item { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 6px 6px 6px 10px; background: var(--bg); }
 .saved-item button.load { border: 0; background: transparent; text-align: left; padding: 0; display: grid; gap: 1px; min-width: 0; }
 .saved-item .nm { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
@@ -264,9 +328,9 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
 @media (prefers-reduced-motion: reduce) { .octo { animation-duration: 0.6s; } }
 
 @media (max-width: 860px) {
-  .lab { grid-template-columns: minmax(0, 1fr); grid-template-areas: "now" "board" "find" "prog" "play" "sound" "tuning" "view" "saved"; }
+  .lab { grid-template-columns: minmax(0, 1fr); grid-template-areas: "now" "board" "find" "prog" "lib" "arr" "play" "sound" "tuning" "view" "saved"; }
   .desk { display: contents; }
-  .area-board { position: static; max-height: none; overflow: visible; }
+  .area-board { position: relative; top: auto; max-height: none; overflow: visible; }
   .octo { height: auto; min-height: 76px; gap: 10px; }
   .octo-pic { width: 86px; height: 60px; }
   .octo-txt b { font-size: 14px; }
@@ -311,19 +375,19 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
       <button class="btn" type="button" id="shape-apply">Set shape</button>
     </div>
     <div class="err" id="shape-err" hidden></div>
-    <div class="hint">Tap a fret to place a note; tap it again to mute the string. The top row is the open string.</div>
+    <div class="hint">Tap a fret to put a finger there; tap it again to mute the string. Top row is open.</div>
   </section>
 
   <div class="desk">
     <section class="panel area-now now" aria-live="polite">
       <div class="now-row">
-        <div style="min-width:0">
+        <div class="lcd">
           <div class="chord-name" id="chord-name">—</div>
           <div class="chord-sub" id="chord-sub"></div>
+          <div class="alts" id="alts" aria-label="Other names; tap one to use its root"></div>
         </div>
         <button class="play-big" id="play" type="button" aria-label="Play chord"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 0.5L9.5 5L1 9.5z"/></svg></button>
       </div>
-      <div class="alts" id="alts" aria-label="Other names; tap one to use its root"></div>
       <div class="octo" id="octo" hidden>
         <button class="octo-pic" id="octo-pic" type="button" aria-expanded="false" aria-label="Show the meme bigger"><img id="octo-img" alt="Meme: a grinning friend with a hand on your shoulder says, “Bro please. You are not an octopus. Try leaving a note out.”" width="676" height="474"></button>
         <div class="octo-txt"><b id="octo-t"></b><span id="octo-why"></span></div>
@@ -340,7 +404,7 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
       <div class="find-read" id="find-read" hidden></div>
       <div class="find-grid" id="find-grid"></div>
       <div class="row" id="find-more-row" hidden><button class="btn" type="button" id="find-more">Show more</button><span class="hint" id="find-count"></span></div>
-      <div class="hint">Lowercase <b>b</b> = flat (Bb, addb6, m7b5); capital <b>B</b> = the note B (Si), e.g. C/B. Spanish names work too: Sib, Fa#m7, Re/Fa#. Searches the current tuning; tap a shape to put it on the neck and hear it.</div>
+      <div class="hint"><b>b</b> is flat, <b>B</b> is the note B: Bb, addb6, m7b5, C/B. Spanish works too: Sib, Fa#m7, Re/Fa#. Shapes are for the current tuning; tap one to hear it.</div>
       <div class="find-ex" id="find-ex"></div>
     </section>
 
@@ -372,7 +436,7 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
         </div>
       </div>
       <div class="steps" id="prog-steps"></div>
-      <div class="hint">Tap a box to change it: <b>↓</b> downstroke, <b>↑</b> upstroke, <b>PM</b> palm-muted chug, <b>✕</b> muted chuck, <b>·</b> rest (the chord keeps ringing). Tap a chord above to select it and see it on the neck.</div>
+      <div class="hint"><b>↓</b> down · <b>↑</b> up · <b>PM</b> palm mute · <b>✕</b> chuck · <b>·</b> let it ring. Tap a box to cycle it, tap a chord to put it on the neck.</div>
       <div class="field">
         <label class="eyebrow" for="prog-name">Save this progression</label>
         <div class="text-in">
@@ -382,12 +446,46 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
       </div>
       <div class="row tight">
         <button class="btn" type="button" id="prog-gp">Download as Guitar Pro file</button>
-        <span class="hint">Tab with chord diagrams, strums, palm mutes and tempo. Opens in Guitar Pro, TuxGuitar, Songsterr and the like.</span>
+        <span class="hint">Tab, chord boxes, strums and tempo. Opens in Guitar Pro, TuxGuitar, Songsterr.</span>
       </div>
-      <div class="field" id="progs-wrap">
-        <span class="eyebrow">My progressions</span>
-        <div class="saved-list" id="progs"></div>
+    </section>
+
+    <section class="panel area-lib" aria-labelledby="lib-h">
+      <div class="row" style="justify-content:space-between">
+        <h2 id="lib-h">My progressions</h2>
+        <span class="hint" id="progs-count"></span>
       </div>
+      <div class="folders" id="prog-folders" role="group" aria-label="Folders"></div>
+      <div class="fold-edit" id="prog-fold" hidden></div>
+      <div class="saved-list scroll" id="progs"></div>
+      <div class="hint" id="progs-empty"></div>
+    </section>
+
+    <section class="panel area-arr" aria-labelledby="arr-h">
+      <div class="row" style="justify-content:space-between">
+        <h2 id="arr-h">Song arranger</h2>
+        <div class="row tight">
+          <label class="toggle"><input type="checkbox" id="arr-loop"> Loop</label>
+          <button class="btn primary" type="button" id="arr-play">▶ Play song</button>
+        </div>
+      </div>
+      <div class="arr-now" id="arr-now" aria-live="polite"></div>
+      <ol class="parts" id="arr-parts" aria-label="Parts of the song"></ol>
+      <div class="hint" id="arr-empty">Chain saved progressions into the whole song: intro twice, verse, chorus, bridge… Each part keeps its own tempo, time and strum. Tap a part's number to play from there.</div>
+      <div class="row tight">
+        <button class="btn" type="button" id="arr-add">+ Add part</button>
+        <button class="btn" type="button" id="arr-new">New</button>
+        <span class="hint" id="arr-len"></span>
+      </div>
+      <div class="hint" id="arr-msg" role="status"></div>
+      <div class="field">
+        <label class="eyebrow" for="arr-name">Save this song</label>
+        <div class="text-in">
+          <input id="arr-name" type="text" maxlength="40" autocomplete="off" placeholder="Name it, e.g. Now and Again">
+          <button class="btn primary" type="button" id="arr-save">Save</button>
+        </div>
+      </div>
+      <div class="row tight"><button class="btn" type="button" id="arr-gp">Download song as Guitar Pro file</button></div>
     </section>
 
     <section class="panel area-play" aria-labelledby="play-h">
@@ -414,7 +512,7 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
       <div class="pedals" id="pedals"></div>
       <div class="chain-line" id="chain-line" aria-live="polite"></div>
       <div class="row tight"><button class="btn" type="button" id="order-reset">Reset pedal order</button></div>
-      <div class="hint">Tap a pedal to switch it on and show its knobs, then tap ▶ to hear it. Use ↑ ↓ to move a pedal earlier or later in the chain; the numbers show the order the sound goes through. Picking a rig also puts the pedals back in the standard order.</div>
+      <div class="hint">Tap a pedal to switch it on and open its knobs. ↑ ↓ move it in the chain; the numbers are the signal order. Picking a rig resets the order.</div>
     </section>
 
     <section class="panel area-tuning" aria-labelledby="tuning-h">
@@ -571,6 +669,15 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
   }
   st.progs = Array.isArray(st.progs) ? st.progs.filter(okProg) : [];
   normProg(st.prog); st.progs.forEach(normProg);
+  // folders and songs: every saved progression has an id (songs point at them) and a folder ('' = none)
+  const newId = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+  st.progs.forEach(q => { if (typeof q.id !== 'string' || !q.id) q.id = newId(); if (typeof q.folder !== 'string') q.folder = ''; });
+  if (!Array.isArray(st.progFolders)) st.progFolders = [];
+  if (typeof st.progFolder !== 'string') st.progFolder = 'all';
+  const okArr = a => a && Array.isArray(a.parts) && a.parts.every(x => x && typeof x.id === 'string' && x.times >= 1);
+  st.arrs = Array.isArray(st.arrs) ? st.arrs.filter(okArr) : [];
+  st.arrs.forEach(a => { if (!a.id) a.id = newId(); if (typeof a.folder !== 'string') a.folder = ''; });
+  if (!okArr(st.arr)) st.arr = { name: '', parts: [], loop: false };
   const save = () => { try { localStorage.setItem('chord-lab', JSON.stringify(st)); } catch (e) {} };
 
   const $ = id => document.getElementById(id);
@@ -658,6 +765,7 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
         const cell = document.createElement('button');
         cell.type = 'button'; cell.className = 'cell';
         cell.style.setProperty('--sw', (inst().course ? 1.2 : 1 + (n - 1 - s) * 0.32) + 'px');
+        if (!inst().course && (st.inst.startsWith('b') || s < n - 3)) cell.classList.add('w');
         const selected = st.frets[s] === f;
         cell.setAttribute('aria-pressed', selected ? 'true' : 'false');
         cell.setAttribute('aria-label', `String ${n - s}, ${f === 0 ? 'open' : 'fret ' + f}, ${pname(m)}`);
@@ -1128,7 +1236,7 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
   ];
   const lenKey = c => c.bars ? 'b' + c.bars : 'c' + c.beats;
   const lenSet = (c, k) => { if (k[0] === 'b') { c.bars = Number(k.slice(1)); delete c.beats; } else { c.beats = Number(k.slice(1)); delete c.bars; } };
-  const lenCounts = c => c.bars ? c.bars * countsOf(P().meter) : c.beats;
+  const lenCounts = (c, meter = P().meter) => c.bars ? c.bars * countsOf(meter) : c.beats;
   const lengths = () => { const e = P().meter.endsWith('/8'); return [['c1', e ? '1 eighth' : '1 beat'], ['c2', e ? '2 eighths' : '2 beats'], ['b1', '1 bar'], ['b2', '2 bars'], ['b4', '4 bars']]; };
   const patMeter = x => x[3] || '4/4';
   const GLYPH = { D: '↓', U: '↑', P: 'PM', X: '✕', '-': '·' };
@@ -1184,7 +1292,7 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
     if (!p.chords.length) { const e = document.createElement('div'); e.className = 'hint'; e.textContent = 'No chords yet. Put a chord on the neck (tap frets, or pick a shape above) and tap “Add chord on neck”.'; box.appendChild(e); }
     p.chords.forEach((c, i) => {
       const chip = document.createElement('div');
-      chip.className = 'chip' + (i === progSel ? ' sel' : '') + (pl && pl.shown === i ? ' playing' : '');
+      chip.className = 'chip' + (i === progSel ? ' sel' : '') + (pl && !pl.song && pl.shown === i ? ' playing' : '');
       const b = document.createElement('button'); b.type = 'button'; b.className = 'cn'; b.textContent = nameOf(c);
       b.title = c.frets.map(f => f === null ? 'x' : f).join('-');
       b.setAttribute('aria-pressed', String(i === progSel));
@@ -1226,7 +1334,7 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
       for (let g = 0; g < size; g++, bt++) for (let k = 0; k < p.sub; k++) {
         const i = bt * p.sub + k, ch = p.pat[i] || '-', count = COUNTS[p.sub][k] || String(bt + 1);
         const b = document.createElement('button'); b.type = 'button';
-        b.className = 'step ' + (ch === '-' ? 'R' : ch) + (pl && pl.step === i ? ' hit' : '');
+        b.className = 'step ' + (ch === '-' ? 'R' : ch) + (pl && !pl.song && pl.step === i ? ' hit' : '');
         b.dataset.i = i;
         b.innerHTML = '<span class="g"></span><span class="c"></span>';
         b.querySelector('.g').textContent = GLYPH[ch]; b.querySelector('.c').textContent = count;
@@ -1244,7 +1352,7 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
     p.pat = out; p.meter = m;
   }
   function markStep() {
-    document.querySelectorAll('#prog-steps .step').forEach(b => b.classList.toggle('hit', !!pl && Number(b.dataset.i) === pl.step));
+    document.querySelectorAll('#prog-steps .step').forEach(b => b.classList.toggle('hit', !!pl && !pl.song && Number(b.dataset.i) === pl.step));
   }
   function cycleStep(i) {
     const p = P();
@@ -1261,30 +1369,244 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
     for (let j = 0; j < countsOf(p.meter) * n; j++) out += (j * p.sub) % n === 0 ? p.pat[(j * p.sub) / n] : '-';
     p.pat = out; p.sub = n;
   }
+  // My progressions: folders, then saved songs and progressions in the chosen folder
+  const progById = id => st.progs.find(q => q.id === id);
+  const progFolderList = () => [...new Set([...st.progFolders, ...st.progs.map(q => q.folder), ...st.arrs.map(x => x.folder)].filter(Boolean))].sort((x, y) => x.localeCompare(y));
+  let progFoldEdit = null, progAsk = null;
+  function folderSelect(cur, label, onPick) {
+    const sel = document.createElement('select'); sel.className = 'mv'; sel.setAttribute('aria-label', label);
+    [['', 'No folder'], ...progFolderList().map(f => [f, f]), ['\u0000new', '+ New folder…']].forEach(([v, l]) => sel.appendChild(new Option(l, v)));
+    sel.value = cur || '';
+    sel.addEventListener('change', () => {
+      if (sel.value === '\u0000new') { progFoldEdit = { kind: 'new', then: onPick }; renderProgs(); return; }
+      onPick(sel.value);
+    });
+    return sel;
+  }
   function renderProgs() {
+    const fl = progFolderList();
+    if (st.progFolder !== 'all' && st.progFolder !== '' && !fl.includes(st.progFolder)) st.progFolder = 'all';
+    const cur = st.progFolder, inF = x => cur === 'all' || (x.folder || '') === cur;
+    const cnt = f => st.progs.filter(q => (q.folder || '') === f).length + st.arrs.filter(x => (x.folder || '') === f).length;
+    const fb = $('prog-folders'); fb.innerHTML = '';
+    const chip = (v, label, n) => {
+      const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', String(cur === v));
+      b.append(label); const c = document.createElement('span'); c.className = 'n'; c.textContent = n; b.append(c);
+      b.addEventListener('click', () => { st.progFolder = v; progFoldEdit = null; save(); renderProgs(); });
+      fb.appendChild(b);
+    };
+    const total = st.progs.length + st.arrs.length;
+    chip('all', 'All', total);
+    fl.forEach(f => chip(f, f, cnt(f)));
+    if (fl.length && cnt('')) chip('', 'No folder', cnt(''));
+    const add = document.createElement('button'); add.type = 'button'; add.className = 'add'; add.textContent = '+ Folder';
+    add.addEventListener('click', () => { progFoldEdit = { kind: 'new' }; renderProgs(); });
+    fb.appendChild(add);
+
+    // new / rename / delete folder
+    const fe = $('prog-fold'); fe.innerHTML = '';
+    const isFolder = cur !== 'all' && cur !== '';
+    fe.hidden = !(progFoldEdit || isFolder);
+    if (progFoldEdit) {
+      const inp = document.createElement('input'); inp.type = 'text'; inp.maxLength = 40; inp.placeholder = 'Folder name, e.g. Now and Again';
+      inp.value = progFoldEdit.kind === 'rename' ? cur : '';
+      const ok = document.createElement('button'); ok.type = 'button'; ok.className = 'btn primary'; ok.textContent = progFoldEdit.kind === 'rename' ? 'Rename' : 'Create';
+      const no = document.createElement('button'); no.type = 'button'; no.className = 'btn'; no.textContent = 'Cancel';
+      const done = () => {
+        const v = inp.value.trim().replace(/\s+/g, ' '); if (!v) { inp.focus(); return; }
+        if (progFoldEdit.kind === 'rename') {
+          st.progFolders = st.progFolders.map(f => f === cur ? v : f);
+          st.progs.forEach(q => { if (q.folder === cur) q.folder = v; }); st.arrs.forEach(x => { if (x.folder === cur) x.folder = v; });
+        }
+        if (!st.progFolders.includes(v)) st.progFolders.push(v);
+        const then = progFoldEdit.then; progFoldEdit = null;
+        if (then) then(v); else st.progFolder = v;
+        save(); renderProgs();
+      };
+      ok.addEventListener('click', done); no.addEventListener('click', () => { progFoldEdit = null; renderProgs(); });
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') done(); if (e.key === 'Escape') { progFoldEdit = null; renderProgs(); } });
+      fe.append(inp, ok, no); setTimeout(() => inp.focus(), 0);
+    } else if (isFolder) {
+      const lab = document.createElement('span'); lab.className = 'hint'; lab.textContent = 'Folder “' + cur + '”:';
+      const rn = document.createElement('button'); rn.type = 'button'; rn.className = 'btn'; rn.textContent = 'Rename';
+      rn.addEventListener('click', () => { progFoldEdit = { kind: 'rename' }; renderProgs(); });
+      const dl = document.createElement('button'); dl.type = 'button'; dl.className = 'btn'; dl.textContent = 'Delete folder';
+      dl.title = 'What\'s inside stays, without a folder';
+      dl.addEventListener('click', () => {
+        st.progFolders = st.progFolders.filter(f => f !== cur);
+        st.progs.forEach(q => { if (q.folder === cur) q.folder = ''; }); st.arrs.forEach(x => { if (x.folder === cur) x.folder = ''; });
+        st.progFolder = 'all'; save(); renderProgs();
+      });
+      fe.append(lab, rn, dl);
+    }
+
     const list = $('progs'); list.innerHTML = '';
-    $('progs-wrap').hidden = !st.progs.length;
-    st.progs.forEach((q, idx) => {
-      const item = document.createElement('div'); item.className = 'saved-item prg';
+    const row = (kind, x) => {
+      const item = document.createElement('div'); item.className = 'saved-item prg' + (kind === 'song' ? ' song' : '');
       const load = document.createElement('button'); load.type = 'button'; load.className = 'load';
       load.innerHTML = '<span class="nm"></span><span class="meta"></span>';
-      load.querySelector('.nm').textContent = q.name;
-      const pre = PATTERNS.find(x => x[1] === q.sub && x[2] === q.pat && patMeter(x) === (q.meter || '4/4'));
-      load.querySelector('.meta').textContent = q.chords.map(nameOf).join(' – ') + ' · ' + q.bpm + ' bpm · ' + (q.meter || '4/4') + ' · ' + (pre ? pre[0].replace(/\s+[↓↑].*$/, '') : 'custom strum');
-      load.addEventListener('click', () => {
-        if (pl) stopProg();
-        st.prog = clone(q); progSel = -1; $('prog-name').value = q.name;
-        progMsg(`Loaded “${q.name}”.`);
-        if (st.prog.chords.length) putOnNeck(st.prog.chords[0]); else refresh();
-      });
-      const del = document.createElement('button'); del.type = 'button'; del.className = 'del'; del.textContent = '×'; del.setAttribute('aria-label', 'Delete progression ' + q.name);
-      del.addEventListener('click', () => { st.progs.splice(idx, 1); save(); renderProgs(); progMsg(`Deleted “${q.name}”.`); });
+      const nmEl = load.querySelector('.nm');
+      if (kind === 'song') { const t = document.createElement('span'); t.className = 'tag'; t.textContent = 'Song'; nmEl.append(t); }
+      nmEl.append(x.name);
+      const where = cur === 'all' && x.folder ? x.folder + ' · ' : '';
+      if (kind === 'song') {
+        load.querySelector('.meta').textContent = where + (x.parts.map(pt => { const q = progById(pt.id); return (q ? q.name : '(deleted)') + (pt.times > 1 ? ' ×' + pt.times : ''); }).join(' → ') || 'no parts yet');
+        load.title = 'Open in the song arranger';
+        load.addEventListener('click', () => {
+          if (pl && pl.song) stopProg();
+          st.arr = clone(x); $('arr-name').value = x.name; save(); renderArr(); arrMsg(`Opened “${x.name}”.`);
+          document.querySelector('.area-arr').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        });
+      } else {
+        const pre = PATTERNS.find(y => y[1] === x.sub && y[2] === x.pat && patMeter(y) === (x.meter || '4/4'));
+        load.querySelector('.meta').textContent = where + x.chords.map(nameOf).join(' – ') + ' · ' + x.bpm + ' bpm · ' + (x.meter || '4/4') + ' · ' + (pre ? pre[0].replace(/\s+[↓↑].*$/, '') : 'custom strum');
+        load.title = x.chords.map(nameOf).join(' – ');
+        load.addEventListener('click', () => {
+          if (pl) stopProg();
+          st.prog = clone(x); progSel = -1; $('prog-name').value = x.name;
+          progMsg(`Loaded “${x.name}”.`);
+          if (st.prog.chords.length) putOnNeck(st.prog.chords[0]); else refresh();
+        });
+      }
+      const mv = folderSelect(x.folder, 'Folder for ' + x.name, v => { x.folder = v; save(); renderProgs(); });
       const gp = document.createElement('button'); gp.type = 'button'; gp.className = 'ren'; gp.textContent = '.gp';
-      gp.title = 'Download as a Guitar Pro file'; gp.setAttribute('aria-label', 'Download ' + q.name + ' as a Guitar Pro file');
-      gp.addEventListener('click', () => downloadGp(clone(q)));
-      item.append(load, gp, del); list.appendChild(item);
-    });
+      gp.title = 'Download as a Guitar Pro file'; gp.setAttribute('aria-label', 'Download ' + x.name + ' as a Guitar Pro file');
+      gp.addEventListener('click', () => kind === 'song' ? downloadSongGp(x) : downloadGp(clone(x)));
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'del'; del.textContent = '×'; del.setAttribute('aria-label', 'Delete ' + x.name);
+      del.addEventListener('click', () => { progAsk = x.id; renderProgs(); });
+      item.append(load, mv, gp, del);
+      if (progAsk === x.id) {
+        const ask = document.createElement('div'); ask.className = 'ask';
+        const used = kind === 'prog' ? st.arrs.filter(y => y.parts.some(pt => pt.id === x.id)).map(y => y.name) : [];
+        const y = document.createElement('button'); y.type = 'button'; y.className = 'btn'; y.textContent = 'Delete';
+        const n = document.createElement('button'); n.type = 'button'; n.className = 'btn'; n.textContent = 'Keep';
+        y.addEventListener('click', () => {
+          progAsk = null;
+          if (kind === 'song') st.arrs = st.arrs.filter(z => z !== x); else st.progs = st.progs.filter(z => z !== x);
+          save(); renderProgs(); progMsg(`Deleted “${x.name}”.`);
+        });
+        n.addEventListener('click', () => { progAsk = null; renderProgs(); });
+        ask.append(used.length ? `Delete? It's a part of ${used.join(', ')}.` : 'Delete for good?', y, n);
+        item.appendChild(ask);
+      }
+      list.appendChild(item);
+    };
+    const songs = st.arrs.filter(inF), progs = st.progs.filter(inF);
+    songs.forEach(x => row('song', x)); progs.forEach(x => row('prog', x));
+    $('progs-count').textContent = total ? `${st.progs.length} progression${st.progs.length === 1 ? '' : 's'}` + (st.arrs.length ? ` · ${st.arrs.length} song${st.arrs.length === 1 ? '' : 's'}` : '') : '';
+    $('progs-empty').textContent = !total ? 'Nothing saved yet. Saved progressions land here; make a folder per song to keep its parts together.'
+      : (!songs.length && !progs.length ? 'Nothing in this folder yet. Move things here with their folder menu, or save while this folder is open.' : '');
+    $('progs-empty').hidden = !$('progs-empty').textContent;
+    list.hidden = !songs.length && !progs.length;
+    if (arrReady) renderArr();
   }
+
+  /* ---------- song arranger: saved progressions in order, each repeated as many times as you like ---------- */
+  let arrReady = false;
+  const arrMsg = t => { $('arr-msg').textContent = t; };
+  const progSecs = q => q.chords.reduce((n, c) => n + lenCounts(c, q.meter), 0) * 60 / q.bpm;
+  const mmss = x => Math.floor(x / 60) + ':' + String(Math.round(x % 60)).padStart(2, '0');
+  function songParts(a = st.arr) {
+    return a.parts.map((pt, src) => ({ q: progById(pt.id), times: Math.max(1, pt.times | 0), src }))
+      .filter(x => x.q && x.q.chords.length)
+      .map(x => ({ p: normProg(clone(x.q)), times: x.times, name: x.q.name, src: x.src }));
+  }
+  function progOptions(sel, cur) {
+    sel.innerHTML = '';
+    const groups = new Map();
+    st.progs.forEach(q => { const f = q.folder || ''; if (!groups.has(f)) groups.set(f, []); groups.get(f).push(q); });
+    const keys = [...groups.keys()].sort((x, y) => (x === '') - (y === '') || x.localeCompare(y));
+    keys.forEach(f => {
+      const g = document.createElement('optgroup'); g.label = f || 'No folder';
+      groups.get(f).slice().reverse().forEach(q => g.appendChild(new Option(q.name, q.id)));   // oldest first, like the song
+      sel.appendChild(g);
+    });
+    if (cur && !progById(cur)) { const o = new Option('(deleted progression)', cur); o.disabled = true; sel.insertBefore(o, sel.firstChild); }
+    sel.value = cur || '';
+  }
+  function playSong(from = 0) {
+    const parts = songParts();
+    if (!parts.length) { arrMsg(st.progs.length ? 'Add some parts first.' : 'Save a progression first, then add it here as a part.'); return; }
+    const idx = Math.max(0, parts.findIndex(x => x.src >= from));
+    startProg({ parts, idx, rep: 0, loop: !!st.arr.loop, now: null });
+  }
+  function renderArr() {
+    const a = st.arr, box = $('arr-parts'); box.innerHTML = '';
+    $('arr-loop').checked = !!a.loop;
+    $('arr-play').textContent = pl && pl.song ? '■ Stop' : '▶ Play song';
+    a.parts.forEach((pt, i) => {
+      const li = document.createElement('li'); li.className = 'part'; li.dataset.i = i;
+      const num = document.createElement('button'); num.type = 'button'; num.className = 'pn'; num.textContent = i + 1;
+      num.title = 'Play the song from here'; num.setAttribute('aria-label', 'Play the song from part ' + (i + 1));
+      num.addEventListener('click', () => playSong(i));
+      const sel = document.createElement('select'); sel.setAttribute('aria-label', 'Progression for part ' + (i + 1));
+      progOptions(sel, pt.id);
+      sel.addEventListener('change', () => { pt.id = sel.value; save(); renderArr(); });
+      const tm = document.createElement('div'); tm.className = 'times'; tm.setAttribute('role', 'group'); tm.setAttribute('aria-label', 'Times through');
+      const minus = document.createElement('button'); minus.type = 'button'; minus.textContent = '−'; minus.setAttribute('aria-label', 'One time fewer');
+      const out = document.createElement('output'); out.textContent = '×' + pt.times;
+      const plus = document.createElement('button'); plus.type = 'button'; plus.textContent = '+'; plus.setAttribute('aria-label', 'One time more');
+      minus.addEventListener('click', () => { pt.times = Math.max(1, pt.times - 1); save(); renderArr(); });
+      plus.addEventListener('click', () => { pt.times = Math.min(16, pt.times + 1); save(); renderArr(); });
+      tm.append(minus, out, plus);
+      const acts = document.createElement('div'); acts.className = 'acts';
+      const mk = (txt, label, fn, dis) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = txt; b.setAttribute('aria-label', label); b.disabled = !!dis; b.addEventListener('click', fn); acts.appendChild(b); };
+      mk('↑', 'Move part ' + (i + 1) + ' earlier', () => { [a.parts[i - 1], a.parts[i]] = [a.parts[i], a.parts[i - 1]]; save(); renderArr(); }, i === 0);
+      mk('↓', 'Move part ' + (i + 1) + ' later', () => { [a.parts[i + 1], a.parts[i]] = [a.parts[i], a.parts[i + 1]]; save(); renderArr(); }, i === a.parts.length - 1);
+      mk('⧉', 'Copy part ' + (i + 1), () => { a.parts.splice(i + 1, 0, { id: pt.id, times: pt.times }); save(); renderArr(); });
+      mk('×', 'Remove part ' + (i + 1), () => { a.parts.splice(i, 1); save(); renderArr(); });
+      li.append(num, sel, tm, acts); box.appendChild(li);
+    });
+    $('arr-empty').hidden = a.parts.length > 0;
+    $('arr-add').disabled = !st.progs.length;
+    const parts = songParts(), secs = parts.reduce((n, x) => n + x.times * progSecs(x.p), 0);
+    $('arr-len').textContent = parts.length ? `${parts.reduce((n, x) => n + x.times, 0)} sections · about ${mmss(secs)}` : (st.progs.length ? '' : 'Save a progression first.');
+    renderArrNow();
+  }
+  function renderArrNow() {
+    const now = pl && pl.song && pl.song.now;
+    document.querySelectorAll('#arr-parts .part').forEach(li => li.classList.remove('playing'));
+    if (!now) { $('arr-now').textContent = ''; return; }
+    const part = pl.song.parts[now.part];
+    const li = document.querySelector(`#arr-parts .part[data-i="${part.src}"]`); if (li) li.classList.add('playing');
+    $('arr-now').textContent = `▶ ${part.name}${part.times > 1 ? ` (${now.rep + 1} of ${part.times})` : ''} · ${nameOf(now.c)}`;
+  }
+  $('arr-add').addEventListener('click', () => {
+    if (!st.progs.length) return;
+    const a = st.arr, last = a.parts.length ? progById(a.parts[a.parts.length - 1].id) : null;
+    // suggest the next progression in the same folder as the last part, or the first one in the open folder
+    // (in the order they were saved: intro first, usually)
+    const oldest = st.progs.slice().reverse();
+    let pick = null;
+    if (last) { const same = oldest.filter(q => q.folder === last.folder); pick = same[same.indexOf(last) + 1] || last; }
+    if (!pick) pick = oldest.find(q => q.folder === (st.progFolder !== 'all' ? st.progFolder : (oldest[0].folder))) || oldest[0];
+    a.parts.push({ id: pick.id, times: 1 }); save(); renderArr();
+  });
+  $('arr-new').addEventListener('click', () => {
+    if (pl && pl.song) stopProg();
+    st.arr = { name: '', parts: [], loop: false }; $('arr-name').value = ''; save(); renderArr(); arrMsg('Started a new song. Saved ones are in My progressions.');
+  });
+  $('arr-loop').addEventListener('change', e => { st.arr.loop = e.target.checked; if (pl && pl.song) pl.song.loop = e.target.checked; save(); });
+  $('arr-play').addEventListener('click', () => { if (pl && pl.song) { stopProg(); return; } playSong(0); });
+  function saveArr() {
+    const a = st.arr;
+    if (!a.parts.length) { arrMsg('Add some parts before saving.'); return; }
+    const name = $('arr-name').value.trim() || 'Song ' + (st.arrs.length + 1);
+    a.name = name;
+    const entry = clone(a), i = st.arrs.findIndex(x => x.name.toLowerCase() === name.toLowerCase());
+    if (i >= 0) { entry.id = st.arrs[i].id; entry.folder = st.arrs[i].folder; st.arrs[i] = entry; arrMsg(`Updated “${name}”.`); }
+    else {
+      const firstQ = progById(a.parts[0].id);
+      entry.id = newId(); entry.folder = st.progFolder !== 'all' ? st.progFolder : (firstQ ? firstQ.folder : '');
+      st.arrs.unshift(entry); arrMsg(`Saved “${name}”` + (entry.folder ? ` in ${entry.folder}.` : '.'));
+    }
+    $('arr-name').value = name; save(); renderProgs();
+  }
+  $('arr-save').addEventListener('click', saveArr);
+  $('arr-name').addEventListener('keydown', e => { if (e.key === 'Enter') saveArr(); });
+  $('arr-gp').addEventListener('click', () => downloadSongGp(Object.assign(clone(st.arr), { name: $('arr-name').value.trim() || st.arr.name })));
+  $('arr-name').value = st.arr.name || '';
+  arrReady = true;
 
   $('prog-add').addEventListener('click', () => {
     const p = P();
@@ -1326,7 +1648,8 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
     p.name = name;
     const entry = clone(p);
     const i = st.progs.findIndex(q => q.name.toLowerCase() === name.toLowerCase());
-    if (i >= 0) { st.progs[i] = entry; progMsg(`Updated “${name}”.`); } else { st.progs.unshift(entry); progMsg(`Saved “${name}”.`); }
+    if (i >= 0) { entry.id = st.progs[i].id; entry.folder = st.progs[i].folder; st.progs[i] = entry; progMsg(`Updated “${name}”.`); }
+    else { entry.id = newId(); entry.folder = st.progFolder !== 'all' ? st.progFolder : ''; st.progs.unshift(entry); progMsg(`Saved “${name}”` + (entry.folder ? ` in ${entry.folder}.` : '.')); }
     $('prog-name').value = name; save(); renderProgs();
   }
   $('prog-save').addEventListener('click', saveProg);
@@ -1387,69 +1710,98 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
     if (P2.drive.on || (P2.amp.on && P2.amp.gain >= 0.5)) return 29;
     return 27;
   }
-  function progressionToGp(p) {
+  // One progression (loop = play it twice, with repeat signs) or a whole song: each section is a progression played
+  // `times` times, with its own time signature, tempo and strum; sections are marked by name.
+  function progressionToGp(p) { return sectionsToGp(p.name || 'Chord Lab progression', [{ p, times: p.loop ? 2 : 1, name: '' }]); }
+  function sectionsToGp(title, secs) {
     const A = window.alphaTab, M = A.model, settings = new A.Settings();
-    const first = p.chords[0], T = first.tuning.slice(), I = INSTRUMENTS[first.inst];
-    const meter = METERS[p.meter] ? p.meter : '4/4', counts = countsOf(meter), den = Number(meter.split('/')[1]), sub = p.sub;
-    const barSteps = counts * sub;
-    // the strum timeline, exactly as playback walks it (the pattern keeps its place in the bar across chord changes)
-    const steps = []; let bt = 0;
-    p.chords.forEach((c, ci) => {
-      const len = (c.bars ? c.bars * counts : c.beats) * sub;
-      for (let k = 0; k < len; k++) { steps.push({ ci, ch: p.pat[bt % barSteps] || '-', first: k === 0 }); bt++; }
-    });
-    const realSteps = steps.length;
-    while (steps.length % barSteps) steps.push({ ci: -1, ch: '-' });
-    const shapes = p.chords.map(c => fitShape(c, T));
+    const first = secs[0].p.chords[0], T = first.tuning.slice(), I = INSTRUMENTS[first.inst];
     const score = new M.Score();
-    score.title = p.name || 'Chord Lab progression'; score.tab = 'Chord Lab';
-    const qbpm = Math.round(den === 8 ? p.bpm / 2 : p.bpm);   // Guitar Pro counts tempo in quarter notes
-    score.tempo = qbpm;
+    score.title = title; score.tab = 'Chord Lab';
     const track = new M.Track();
-    track.name = p.name || I.label.replace(/^./, ch => ch.toUpperCase());
+    track.name = secs.length > 1 || !secs[0].p.name ? I.label.replace(/^./, ch => ch.toUpperCase()) : secs[0].p.name;
     track.playbackInfo.program = gpProgram(first.inst); track.playbackInfo.primaryChannel = 0; track.playbackInfo.secondaryChannel = 1;
     score.addTrack(track);
     const staff = track.staves[0] || (() => { const x = new M.Staff(); track.addStaff(x); return x; })();
     staff.showTablature = true; staff.showStandardNotation = true;
     staff.stringTuning.tunings = T.slice().reverse();   // Guitar Pro lists the highest string first
-    // chord diagrams (one per distinct shape)
     const diag = new Map();
-    const chordIds = p.chords.map((c, i) => {
-      const fr = shapes[i].frets, name = nameOf(c), key = name + '|' + fr.join(',');
-      if (!diag.has(key)) {
-        const ch = new M.Chord(); ch.name = name;
-        ch.strings = fr.map(f => f === null ? -1 : f).reverse();
-        const pos = fr.filter(f => f !== null && f > 0); ch.firstFret = pos.length && Math.max(...pos) > 5 ? Math.min(...pos) : 1;
-        const id = 'c' + diag.size; staff.addChord(id, ch); diag.set(key, id);
-      }
-      return diag.get(key);
-    });
-    const base = sub === 3 ? den * 2 : den * sub;
-    let last = null;
-    for (let b = 0; b < steps.length / barSteps; b++) {
-      const mb = new M.MasterBar();
-      mb.timeSignatureNumerator = counts; mb.timeSignatureDenominator = den;
-      if (b === 0) { const a = new M.Automation(); a.type = M.AutomationType.Tempo; a.value = qbpm; a.ratioPosition = 0; mb.tempoAutomations.push(a); }
-      if (p.loop && realSteps === steps.length) { if (b === 0) mb.isRepeatStart = true; if (b === steps.length / barSteps - 1) mb.repeatCount = 2; }
-      score.addMasterBar(mb);
-      const bar = new M.Bar(); staff.addBar(bar); const voice = new M.Voice(); bar.addVoice(voice);
-      steps.slice(b * barSteps, (b + 1) * barSteps).forEach(stp => {
-        const beat = new M.Beat(); beat.duration = base;
-        if (sub === 3) { beat.tupletNumerator = 3; beat.tupletDenominator = 2; }
-        const fr = stp.ci >= 0 ? shapes[stp.ci].frets : null;
-        if (stp.first && stp.ci >= 0) beat.chordId = chordIds[stp.ci];
-        const strs = fr ? fr.map((f, i) => f === null ? null : i).filter(i => i !== null) : [];
-        const add = (list, fx) => list.forEach(i => { const n = new M.Note(); n.string = i + 1; n.fret = fr[i]; fx && fx(n); beat.addNote(n); });
-        if (fr && stp.ch === 'D') { add(strs); beat.brushType = M.BrushType.BrushDown; last = { fr, strs }; }
-        else if (fr && stp.ch === 'U') { const top = strs.slice(-Math.min(strs.length, 4)); add(top); beat.brushType = M.BrushType.BrushUp; last = { fr, strs: top }; }
-        else if (fr && stp.ch === 'P') { add(strs, n => { n.isPalmMute = true; }); last = null; }
-        else if (fr && stp.ch === 'X') { add(strs, n => { n.isDead = true; }); last = null; }
-        else if (last) { last.strs.forEach(i => { const n = new M.Note(); n.string = i + 1; n.fret = last.fr[i]; n.isTieDestination = true; beat.addNote(n); }); }
-        voice.addBeat(beat);
+    let moved = false, prevQ = null, tempoSet = false;
+    secs.forEach(sec => {
+      const p = sec.p;
+      const meter = METERS[p.meter] ? p.meter : '4/4', counts = countsOf(meter), den = Number(meter.split('/')[1]), sub = p.sub;
+      const barSteps = counts * sub;
+      // the strum timeline, exactly as playback walks it (the pattern keeps its place in the bar across chord changes)
+      const steps = []; let bt = 0;
+      p.chords.forEach((c, ci) => {
+        const len = (c.bars ? c.bars * counts : c.beats) * sub;
+        for (let k = 0; k < len; k++) { steps.push({ ci, ch: p.pat[bt % barSteps] || '-', first: k === 0 }); bt++; }
       });
-    }
+      const realSteps = steps.length;
+      while (steps.length % barSteps) steps.push({ ci: -1, ch: '-' });
+      const shapes = p.chords.map(c => fitShape(c, T)); if (shapes.some(x => x.moved)) moved = true;
+      const chordIds = p.chords.map((c, i) => {
+        const fr = shapes[i].frets, name = nameOf(c), key = name + '|' + fr.join(',');
+        if (!diag.has(key)) {
+          const ch = new M.Chord(); ch.name = name;
+          ch.strings = fr.map(f => f === null ? -1 : f).reverse();
+          const pos = fr.filter(f => f !== null && f > 0); ch.firstFret = pos.length && Math.max(...pos) > 5 ? Math.min(...pos) : 1;
+          const id = 'c' + diag.size; staff.addChord(id, ch); diag.set(key, id);
+        }
+        return diag.get(key);
+      });
+      const qbpm = Math.round(den === 8 ? p.bpm / 2 : p.bpm);   // Guitar Pro counts tempo in quarter notes
+      if (!tempoSet) { score.tempo = qbpm; tempoSet = true; }
+      const base = sub === 3 ? den * 2 : den * sub;
+      const nb = steps.length / barSteps, times = Math.max(1, sec.times | 0);
+      // repeat signs when the part fills whole bars; otherwise write it out again
+      const useRepeat = times > 1 && realSteps === steps.length, passes = useRepeat ? 1 : times;
+      for (let pass = 0; pass < passes; pass++) {
+        let last = null;
+        for (let b = 0; b < nb; b++) {
+          const mb = new M.MasterBar();
+          mb.timeSignatureNumerator = counts; mb.timeSignatureDenominator = den;
+          if (b === 0 && pass === 0) {
+            if (qbpm !== prevQ) { const a = new M.Automation(); a.type = M.AutomationType.Tempo; a.value = qbpm; a.ratioPosition = 0; mb.tempoAutomations.push(a); prevQ = qbpm; }
+            if (sec.name) { const sct = new M.Section(); sct.text = sec.name; sct.marker = ''; mb.section = sct; }
+          }
+          if (useRepeat) { if (b === 0) mb.isRepeatStart = true; if (b === nb - 1) mb.repeatCount = times; }
+          score.addMasterBar(mb);
+          const bar = new M.Bar(); staff.addBar(bar); const voice = new M.Voice(); bar.addVoice(voice);
+          steps.slice(b * barSteps, (b + 1) * barSteps).forEach(stp => {
+            const beat = new M.Beat(); beat.duration = base;
+            if (sub === 3) { beat.tupletNumerator = 3; beat.tupletDenominator = 2; }
+            const fr = stp.ci >= 0 ? shapes[stp.ci].frets : null;
+            if (stp.first && stp.ci >= 0) beat.chordId = chordIds[stp.ci];
+            const strs = fr ? fr.map((f, i) => f === null ? null : i).filter(i => i !== null) : [];
+            const add = (list, fx) => list.forEach(i => { const n = new M.Note(); n.string = i + 1; n.fret = fr[i]; fx && fx(n); beat.addNote(n); });
+            if (fr && stp.ch === 'D') { add(strs); beat.brushType = M.BrushType.BrushDown; last = { fr, strs }; }
+            else if (fr && stp.ch === 'U') { const top = strs.slice(-Math.min(strs.length, 4)); add(top); beat.brushType = M.BrushType.BrushUp; last = { fr, strs: top }; }
+            else if (fr && stp.ch === 'P') { add(strs, n => { n.isPalmMute = true; }); last = null; }
+            else if (fr && stp.ch === 'X') { add(strs, n => { n.isDead = true; }); last = null; }
+            else if (last) { last.strs.forEach(i => { const n = new M.Note(); n.string = i + 1; n.fret = last.fr[i]; n.isTieDestination = true; beat.addNote(n); }); }
+            voice.addBeat(beat);
+          });
+        }
+      }
+    });
     score.finish(settings);
-    return { bytes: new A.exporter.Gp7Exporter().export(score, settings), moved: shapes.some(x => x.moved) };
+    return { bytes: new A.exporter.Gp7Exporter().export(score, settings), moved };
+  }
+  async function downloadSongGp(a) {
+    const parts = songParts(a);
+    if (!parts.length) { arrMsg('Add some parts first.'); return; }
+    const say = t => { arrMsg(t); progMsg(t); };
+    say('Making the Guitar Pro file…');
+    try { await loadAlphaTab(); }
+    catch (e) { say('The Guitar Pro writer didn\'t load. Check your connection and try again.'); return; }
+    let out;
+    try { out = sectionsToGp(a.name || 'Chord Lab song', parts.map(x => ({ p: x.p, times: x.times, name: x.name }))); }
+    catch (e) { say('Something went wrong making the file. Try again, or tell Claude what was in the song.'); return; }
+    const name = ((a.name || 'Chord Lab song').replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'Chord Lab song') + '.gp';
+    const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([out.bytes], { type: 'application/octet-stream' })); link.download = name;
+    document.body.appendChild(link); link.click(); setTimeout(() => { URL.revokeObjectURL(link.href); link.remove(); }, 2000);
+    say(`Downloaded “${name}”.` + (out.moved ? ' Parts in another tuning were re-fingered for the first part\'s tuning.' : ''));
   }
   async function downloadGp(p) {
     if (!p.chords.length) { progMsg('Add some chords first.'); return; }
@@ -1472,17 +1824,18 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
   // Playback: a look-ahead scheduler. Every 25 ms it books the strums due in the next 150 ms on the
   // audio clock (so timing stays tight even if the screen is busy), and a drawing loop moves the
   // highlight and puts each chord on the neck as it's heard.
-  function startProg() {
-    if (!P().chords.length) { progMsg('Add some chords first.'); return; }
+  // song: { parts: [{ p, times, name, src }], idx, rep, loop } plays saved progressions one after another
+  function startProg(song) {
+    if (!song && !P().chords.length) { progMsg('Add some chords first.'); return; }
     withAudio(() => {
       if (pl) stopProg();
       hush();
-      pl = { chip: 0, ct: 0, bt: 0, t: ctx.currentTime + 0.1, occ: 0, live: [], marks: [], shown: -1, step: -1, endAt: null };
+      pl = { chip: 0, ct: 0, bt: 0, t: ctx.currentTime + 0.1, occ: 0, live: [], marks: [], shown: -1, shownKey: '', step: -1, endAt: null, song: song || null };
       routeOut(!!st.bgPlay);
       pl.timer = setInterval(progTick, 25); progTick();
       pl.raf = requestAnimationFrame(progDraw);
       mediaSession(true);
-      renderProg();
+      renderProg(); renderArr();
     });
   }
   // Lock-screen / notification controls while a progression plays.
@@ -1490,7 +1843,8 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
     const ms = navigator.mediaSession; if (!ms) return;
     try {
       if (on) {
-        ms.metadata = new MediaMetadata({ title: P().name || 'Chord progression', artist: 'Chord Lab', album: P().chords.map(nameOf).join(' – ') });
+        ms.metadata = pl && pl.song ? new MediaMetadata({ title: st.arr.name || 'Song', artist: 'Chord Lab', album: pl.song.parts.map(x => x.name).join(' → ') })
+          : new MediaMetadata({ title: P().name || 'Chord progression', artist: 'Chord Lab', album: P().chords.map(nameOf).join(' – ') });
         ms.playbackState = 'playing';
         ms.setActionHandler('pause', () => stopProg());
         ms.setActionHandler('stop', () => stopProg());
@@ -1501,33 +1855,39 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
   function progTick() {
     if (!pl || !ctx) return;
     if (pl.endAt !== null) { if (document.hidden && ctx.currentTime >= pl.endAt) stopProg(true); return; }
-    const p = P();
     if (document.hidden && pl.marks.length > 64) pl.marks = pl.marks.filter(m => m.t > ctx.currentTime - 1);
     const ahead = document.hidden ? 4 : 0.15;
     while (pl.t < ctx.currentTime + ahead) {
+      const sg = pl.song, p = sg ? sg.parts[sg.idx].p : P();
       if (!p.chords.length) { stopProg(); return; }
       if (pl.chip >= p.chords.length) pl.chip = 0;
       const c = p.chords[pl.chip], stT = TPB / p.sub, off = pl.bt % stT, beatSec = 60 / p.bpm;
       if (off === 0) {
         const i = pl.bt / stT, ch = p.pat[i] || '-';
-        if (ch !== '-') strum(c, ch, pl.t, stT / TPB * beatSec, i, p.sub);
-        pl.marks.push({ t: pl.t, chip: pl.chip, i });
+        if (ch !== '-') strum(c, ch, pl.t, stT / TPB * beatSec, i, p.sub, p.meter);
+        pl.marks.push({ t: pl.t, chip: pl.chip, i, c, part: sg ? sg.idx : -1, rep: sg ? sg.rep : 0 });
       }
       const adv = stT - off;
       pl.t += adv / TPB * beatSec;
       pl.bt = (pl.bt + adv) % (countsOf(p.meter) * TPB);
       pl.ct += adv;
-      if (pl.ct >= lenCounts(c) * TPB) {
+      if (pl.ct >= lenCounts(c, p.meter) * TPB) {
         pl.ct = 0; pl.chip++; pl.occ++;
         if (pl.chip >= p.chords.length) {
-          if (p.loop) { pl.chip = 0; pl.bt = 0; }   // each time round starts on beat 1 of the pattern
-          else { pl.endAt = pl.t; return; }
+          pl.chip = 0; pl.bt = 0;   // each time round (and each new part) starts on beat 1 of the pattern
+          if (sg) {
+            if (++sg.rep >= sg.parts[sg.idx].times) { sg.rep = 0; sg.idx++; }
+            if (sg.idx >= sg.parts.length) {
+              if (sg.loop) sg.idx = 0;
+              else { sg.idx = sg.parts.length - 1; pl.endAt = pl.t; return; }
+            }
+          } else if (!p.loop) { pl.endAt = pl.t; return; }
         }
       }
     }
   }
-  function groupStart(cnt) { let a = 0; for (const g of METERS[P().meter]) { if (a === cnt) return true; a += g; } return false; }
-  function strum(c, ch, t, stepSec, i, sub) {
+  function groupStart(cnt, meter = P().meter) { let a = 0; for (const g of METERS[meter] || METERS['4/4']) { if (a === cnt) return true; a += g; } return false; }
+  function strum(c, ch, t, stepSec, i, sub, meter) {
     const idx = c.frets.map((f, s) => f === null ? null : s).filter(s => s !== null);
     if (!idx.length) return;
     const ik = instFor(c), course = INSTRUMENTS[ik].course, pairs = pairsFor(c, ik);
@@ -1536,7 +1896,7 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
     if (ch === 'U') { order = idx.slice(-Math.min(idx.length, 4)).reverse(); gain = base * 0.72; }   // upstrokes mostly catch the thin strings
     else if (ch === 'X') { order = idx; gain = base * 0.8; }
     // accents: strongest on 1, then the start of each group (each beat in x/4; each 2 or 3 in x/8), then other counts
-    const cnt = Math.floor(i / sub), onCount = i % sub === 0, grp = groupStart(cnt);
+    const cnt = Math.floor(i / sub), onCount = i % sub === 0, grp = groupStart(cnt, meter);
     const acc = i === 0 ? 1.12 : onCount && grp ? 1 : onCount ? 0.93 : 0.86;
     if (ch === 'P') { order = idx; gain = base * (acc > 0.9 ? 1.05 : 0.95); }
     else if (ch !== 'U' && ch !== 'X') { order = idx; gain = base * acc; }
@@ -1563,7 +1923,8 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
     while (pl.marks.length && pl.marks[0].t <= now) m = pl.marks.shift();
     if (m) {
       pl.step = m.i;
-      if (m.chip !== pl.shown) { pl.shown = m.chip; const c = P().chords[m.chip]; if (c) putOnNeck(c); else renderProg(); }
+      const key = m.part + ':' + m.rep + ':' + m.chip;
+      if (key !== pl.shownKey) { pl.shownKey = key; pl.shown = m.part < 0 ? m.chip : -1; if (pl.song) pl.song.now = m; putOnNeck(m.c); renderArrNow(); }
       else markStep();
     }
     if (pl.endAt !== null && now >= pl.endAt) { stopProg(true); return; }
@@ -1575,6 +1936,7 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
     pl = null;
     if (!letRing && ctx) hush();
     mediaSession(false);
+    renderArr();
     // go back to the direct, low-latency output once the last notes have rung out
     if (viaMedia) { const c = ctx; setTimeout(() => { if (!pl && ctx === c) routeOut(false); }, letRing ? 4000 : 400); }
     renderProg();

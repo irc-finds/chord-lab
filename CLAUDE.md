@@ -39,7 +39,20 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   only for notes, frets, intervals, tunings and tempo. Dark palette: matte charcoal `#16171a`, panels `#1c1d21` with 1px matte borders
   `#2c2f36`, no glows; root/active notes amber `#e5a93c`, other notes cream (`--ink` `#ece4d0`), parchment `--accent` `#cdbb94` for
   selection, terracotta `--warn` `#d9534f` for warnings and dead notes. Light mode is the same idea on parchment. Same tokens in
-  songs.html and dsharp-chart.html. Corners are small (8px panels, 4–6px badges).
+  songs.html and dsharp-chart.html. He still found that "AI-looking", so it went further toward real gear (shared materials live in
+  `src/appbar.html`): panels are rack faceplates (4px corners, sheen at the top edge, two screws via ::before/::after, silkscreened
+  uppercase module names), buttons are keys (gradient, 2px darker bottom edge, press travel; primary = cream cap), fields and
+  segmented switches are inset. The chord readout is a dark amber screen (`.lcd`, same in both themes) with the other readings
+  ("also") inside it, and a big transport key. The neck: rosewood in dark mode, maple with black dots in light, nickel fret wire
+  (inset box-shadows), bone nut, wound low strings (`.cell.w`, all but the top three on guitar, all on bass), pearl inlays.
+  Help text is short and plain.
+- Progression folders and the song arranger: saved progressions have `id` and `folder`; `st.progFolders`, `st.progFolder` ('all',
+  '' or a name). "My progressions" is its own panel (`.area-lib`): folder chips, rename/delete folder, a capped scrolling list
+  (songs first, tagged "Song"), per-item folder menu, .gp, delete with confirm (warns if a song uses it). Saving goes into the open
+  folder. "Song arranger" (`.area-arr`, `st.arr` working copy, `st.arrs` saved: {id, name, folder, parts: [{id, times}], loop}) chains
+  saved progressions; each part keeps its own tempo, meter, strum and tuning. Playback reuses the scheduler: `startProg(song)`
+  with `pl.song = {parts, idx, rep, loop}`; marks carry the chord, part and repeat. `sectionsToGp` writes a whole song (per-part time
+  signature and tempo changes, repeat signs when a part fills whole bars, section names); `progressionToGp` calls it for one.
 - Analyzer layout: `.lab` is two columns, the board on the left and `.desk` on the right. On wide screens the board is sticky
   (scrolls inside itself if the screen is short) and the chord readout is sticky at the top of `.desk`, so fretting never moves the
   readout. At ≤ 860px `.desk` is `display: contents` and the grid areas order the panels (readout sticky on top, then the board).

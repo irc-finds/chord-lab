@@ -239,6 +239,65 @@ body { zoom: var(--z, 1); padding-left: calc(max(16px, env(safe-area-inset-left,
 .appbar .size { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
 .appbar .size select { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 4px 6px; font: inherit; }
 @media (max-width: 480px) { .appbar .switch { flex: 1; } .appbar .switch a { flex: 1; justify-content: center; } .appbar .size { margin-left: 0; } }
+
+/* ---------- materials shared by both pages: rack modules, keys, inset fields ---------- */
+:root {
+  --key-top: #fbf9f3; --key-bot: #ebe5d6; --key-edge: #b7ad97; --key-ink: #2a2620;
+  --cap-top: #2e2b26; --cap-bot: #1f1d19; --cap-edge: #0d0c0a; --cap-ink: #f3ebd7;
+  --inset: #fffdf7; --inset-edge: #bfb6a2; --rack-shadow: 0 1px 0 rgba(255, 255, 255, 0.7), 0 2px 5px -2px rgba(60, 45, 20, 0.25);
+  --screw-a: #d8d1c2; --screw-b: #9d9481; --plate-sheen: rgba(255, 255, 255, 0.5);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --key-top: #2f3136; --key-bot: #25272b; --key-edge: #101113; --key-ink: #e6dfcc;
+    --cap-top: #f3ebd7; --cap-bot: #ddd3ba; --cap-edge: #8c836e; --cap-ink: #1b1914;
+    --inset: #111214; --inset-edge: #0a0a0b; --rack-shadow: 0 1px 0 rgba(0, 0, 0, 0.7), 0 3px 8px -4px rgba(0, 0, 0, 0.8);
+    --screw-a: #55585f; --screw-b: #232428; --plate-sheen: rgba(255, 255, 255, 0.03);
+  }
+}
+:root[data-theme="dark"] {
+  --key-top: #2f3136; --key-bot: #25272b; --key-edge: #101113; --key-ink: #e6dfcc;
+  --cap-top: #f3ebd7; --cap-bot: #ddd3ba; --cap-edge: #8c836e; --cap-ink: #1b1914;
+  --inset: #111214; --inset-edge: #0a0a0b; --rack-shadow: 0 1px 0 rgba(0, 0, 0, 0.7), 0 3px 8px -4px rgba(0, 0, 0, 0.8);
+  --screw-a: #55585f; --screw-b: #232428; --plate-sheen: rgba(255, 255, 255, 0.03);
+}
+/* a module is a faceplate: matte, a little sheen at the top edge, two screws */
+.panel, .sheet { border-radius: 4px; box-shadow: var(--rack-shadow), inset 0 1px 0 var(--plate-sheen); background-image: linear-gradient(180deg, var(--plate-sheen), transparent 90px); }
+.panel:where(:not(.area-board):not(.area-now):not(.board-wrap)), .sheet { position: relative; }
+.panel::before, .panel::after, .sheet::before, .sheet::after {
+  content: ""; position: absolute; top: 6px; width: 7px; height: 7px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 35% 30%, var(--screw-a), var(--screw-b) 75%);
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.45);
+}
+.panel::before, .sheet::before { left: 6px; }
+.panel::after, .sheet::after { right: 6px; }
+/* module names are silkscreened, not headlines */
+.panel h2, .sheet h2 { font-family: var(--font-display); font-weight: 600; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+/* keys: a little travel, a darker bottom edge */
+.btn, .seg button, .part .pn, .part .times button, .folders button {
+  background: linear-gradient(180deg, var(--key-top), var(--key-bot)); color: var(--key-ink);
+  border: 1px solid var(--key-edge); border-bottom-width: 2px; border-radius: 3px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.btn { padding: 5px 12px; }
+.btn:hover:not(:disabled), .folders button:hover { filter: brightness(1.06); border-color: var(--key-edge); }
+.btn:active:not(:disabled), .seg button:active, .part .pn:active, .folders button:active { transform: translateY(1px); border-bottom-width: 1px; margin-bottom: 1px; }
+.btn.primary, .seg button[aria-pressed="true"], .folders button[aria-pressed="true"], .btn[aria-pressed="true"] {
+  background: linear-gradient(180deg, var(--cap-top), var(--cap-bot)); color: var(--cap-ink); border-color: var(--cap-edge);
+}
+.seg { border-radius: 4px; background: var(--inset); border-color: var(--inset-edge); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35); padding: 3px; gap: 3px; }
+.seg button { border-radius: 2px; }
+.seg button:not([aria-pressed="true"]) { background: transparent; border-color: transparent; box-shadow: none; color: var(--muted); }
+.folders button:not([aria-pressed="true"]) { color: var(--key-ink); }
+.folders button.add { border-style: dashed; border-bottom-width: 1px; background: transparent; color: var(--muted); }
+/* fields are cut into the plate */
+select, .text-in input, .fold-edit input, .lib-fold input, .lib-search, input[type="number"] {
+  background: var(--inset); border: 1px solid var(--inset-edge); border-radius: 3px; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3); color: var(--ink);
+}
+.appbar .switch { border-radius: 4px; background: var(--inset); border-color: var(--inset-edge); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35); }
+.appbar .switch a { border-radius: 2px; }
+.appbar .switch a[aria-current="page"] { background: linear-gradient(180deg, var(--cap-top), var(--cap-bot)); color: var(--cap-ink); box-shadow: 0 1px 0 var(--cap-edge); }
+.appbar .size select { border-radius: 3px; }
 </style>
 </head>
 <body data-page="songs">

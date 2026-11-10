@@ -21,6 +21,7 @@ to the home screen and it opens like an app. The **Size** menu (80% by default o
 - Strum up/down or arpeggiate, with a synthesized plucked-string sound.
 - **Sound and pedals**: switch between acoustic and electric, and run the sound through a pedal chain (compressor, noise gate, gated sputtery fuzz, overdrive, high-gain distortion, chorus, amp with speaker cabinet, delay, reverb) in any order, or pick a ready-made rig, including djent and open-tuning metal.
 - **Progressions**: string chords together, give each a length, pick or draw a strum pattern (quarters, 8ths, triplets or 16ths, with downstrokes, upstrokes, palm mutes, muted chucks and rests) in any time signature from 2/4 to 12/8, and loop it. Download any progression as a Guitar Pro file. Save progressions by name.
+- **Folders and songs**: sort saved progressions into folders (one per song works well), then chain them in the **Song arranger**: intro ×2, verse, chorus, bridge… Each part keeps its own tempo, time signature and strum. Play the whole song, start from any part, or save it as one Guitar Pro file.
 - **Octopus check**: if you tap a shape no hand can fret (too many fingers or too wide a stretch), a short strip under the chord name (with the meme) tells you why, with a different nickname each time, and stays until the shape is playable. Tap the meme to see it bigger. You can switch it off under Display.
 - Shows notes, intervals or plain dots, in sharps or flats.
 
