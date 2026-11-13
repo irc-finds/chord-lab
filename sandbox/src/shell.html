@@ -350,6 +350,19 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
 .appbar { --app-w: calc(1280px / var(--z, 1)); }
 
 /*APPBAR_CSS*/
+.pages { grid-template-columns: minmax(0, 1fr); }
+.gp-in > *, .gp-prev > *, .gp-part > * { min-width: 0; }
+#gp-track { width: 100%; min-width: 0; text-overflow: ellipsis; }
+.area-lib .row { flex-wrap: wrap; }
+.gp-in { min-width: 0; display: grid; gap: 10px; padding: 12px; border: 1px solid var(--line); border-left: 3px solid var(--root); border-radius: 4px; background: var(--bg); }
+.gp-head { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.gp-head b { font-family: var(--font-display); font-weight: 600; font-size: 18px; }
+.gp-prev { display: grid; gap: 8px; }
+.gp-part { display: grid; gap: 3px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
+.gp-part .nm { font-family: var(--font-display); font-weight: 600; font-size: 15px; }
+.gp-part .ch { font-family: var(--font-data); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.gp-part .pt { font-family: var(--font-data); font-size: 13px; color: var(--root); letter-spacing: 0.04em; white-space: pre-wrap; }
+.gp-warn { color: var(--warn); }
 /* ---------- sandbox: an app that fits the screen; each section is a page you open with a button ---------- */
 html, body { height: 100%; overflow: hidden; }
 body { height: calc(100dvh / var(--z, 1)); overflow: hidden; display: flex; flex-direction: column; padding-block: 10px 10px; }
@@ -509,6 +522,22 @@ footer { display: none; }
       <div class="row" style="justify-content:space-between">
         <h2 id="lib-h">My progressions</h2>
         <span class="hint" id="progs-count"></span>
+      </div>
+      <div class="row tight">
+        <label class="btn" for="gp-file" style="cursor:pointer">Load a Guitar Pro file…</label>
+        <input type="file" id="gp-file" accept=".gp,.gpx,.gp5,.gp4,.gp3,.gp7,.gp8,.xml,.musicxml,.mxl" hidden>
+        <span class="hint" id="gp-msg" role="status">Reads the chords and the strumming from a tab.</span>
+      </div>
+      <div class="gp-in" id="gp-in" hidden>
+        <div class="gp-head"><b id="gp-title"></b><span class="hint" id="gp-meta"></span></div>
+        <label class="field"><span class="eyebrow">Track</span><select id="gp-track" aria-label="Which track to read"></select></label>
+        <div class="gp-warn hint" id="gp-warn" hidden></div>
+        <div class="gp-prev" id="gp-prev"></div>
+        <div class="gp-song hint" id="gp-song"></div>
+        <div class="row tight">
+          <button class="btn primary" type="button" id="gp-add">Add to My progressions</button>
+          <button class="btn" type="button" id="gp-cancel">Cancel</button>
+        </div>
       </div>
       <div class="folders" id="prog-folders" role="group" aria-label="Folders"></div>
       <div class="fold-edit" id="prog-fold" hidden></div>
@@ -2137,6 +2166,85 @@ footer { display: none; }
     st.fx.mode = mode; st.fx.rig = id; st.fx.order = DEFAULT_ORDER.slice();
     $('haze').checked = st.fx.p.reverb.on;
     wireFx(); applyFx(); save(); renderPedals();
+  });
+
+  /* ---------- Guitar Pro → progressions (sandbox): chords and strumming read from a tab ---------- */
+/*GPIMPORT*/
+  let gpScore = null, gpRes = null, gpFile = '';
+  const gpMsg = t => { $('gp-msg').textContent = t; };
+  const instForTab = (n, bass) => bass ? ({ 4: 'b4', 5: 'b5' })[n] || null : ({ 6: 'g6', 7: 'g7' })[n] || null;
+  const patArrows = (pat, sub) => pat.split('').map(c => ({ D: '↓', U: '↑', P: 'PM', X: '✕', '-': '·' })[c] || c)
+    .reduce((out, g, i) => out + g + ((i + 1) % sub === 0 ? '   ' : ' '), '').trim();
+  function gpRead(ti) {
+    gpRes = gpToParts(gpScore, ti, { meters: METERS, instFor: instForTab, model: window.alphaTab.model });
+    const box = $('gp-prev'); box.innerHTML = '';
+    $('gp-add').disabled = !!gpRes.error || !gpRes.progs.length;
+    $('gp-warn').hidden = true;
+    if (gpRes.error) { $('gp-song').textContent = gpRes.error; return; }
+    if (!gpRes.progs.length) { $('gp-song').textContent = 'No chords in that track. Try another one.'; return; }
+    const info = gpTrackInfo(gpScore)[ti];
+    if (info.chordBeats < info.notes * 0.3) {
+      $('gp-warn').hidden = false;
+      $('gp-warn').textContent = 'This track is mostly single notes (a riff or a lead), so the progressions will strum whatever notes ring in each beat. It works best on a rhythm part.';
+    }
+    const I = INSTRUMENTS[gpRes.inst];
+    gpRes.progs.forEach(x => {
+      const d = document.createElement('div'); d.className = 'gp-part';
+      const nmEl = document.createElement('span'); nmEl.className = 'nm';
+      nmEl.textContent = `${x.name} · ${x.bars} bar${x.bars === 1 ? '' : 's'} · ${x.prog.meter} · ${x.prog.bpm} bpm`;
+      const ch = document.createElement('span'); ch.className = 'ch';
+      const names = x.prog.chords.map(nameOf);
+      ch.textContent = names.slice(0, 24).join(' – ') + (names.length > 24 ? ' …' : '');
+      const pt = document.createElement('span'); pt.className = 'pt'; pt.textContent = patArrows(x.prog.pat, x.prog.sub);
+      const fit = document.createElement('span'); fit.className = 'hint';
+      fit.textContent = x.patBars >= x.totalBars ? 'Every bar uses this strum.' : `This strum is used in ${x.patBars} of ${x.totalBars} bars (the most common one).`;
+      d.append(nmEl, ch, pt, fit); box.appendChild(d);
+    });
+    $('gp-song').textContent = 'Song order: ' + gpRes.order.map(o => gpRes.progs[o.ref].name + (o.times > 1 ? ' ×' + o.times : '')).join(' → ')
+      + ` · ${I.label}, tuned ${gpRes.tuning.map(m => nm(m)).join(' ')}`;
+  }
+  $('gp-file').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    gpMsg('Reading the tab…');
+    try { await loadAlphaTab(); } catch (err) { gpMsg('The Guitar Pro reader didn\'t load. Check your connection and try again.'); return; }
+    try {
+      const bytes = new Uint8Array(await f.arrayBuffer());
+      gpScore = window.alphaTab.importer.ScoreLoader.loadScoreFromBytes(bytes, new window.alphaTab.Settings());
+    } catch (err) { gpMsg('That file couldn\'t be read. Guitar Pro 3 to 8, .gpx or MusicXML work.'); return; }
+    gpFile = f.name;
+    const info = gpTrackInfo(gpScore), best = gpBestTrack(info);
+    const sel = $('gp-track'); sel.innerHTML = '';
+    info.forEach(t => { if (!t.percussion && t.strings >= 4) sel.appendChild(new Option(`${t.name} (${t.strings} strings)`, t.index)); });
+    if (best < 0) { gpMsg('No guitar or bass track with notes in that file.'); return; }
+    sel.value = String(best);
+    $('gp-title').textContent = gpScore.title || f.name.replace(/\.[^.]+$/, '');
+    $('gp-meta').textContent = [gpScore.artist, `${gpScore.masterBars.length} bars`].filter(Boolean).join(' · ');
+    $('gp-in').hidden = false; gpMsg('Here\'s what it found. Pick another track if this isn\'t the rhythm part.');
+    gpRead(best);
+  });
+  $('gp-track').addEventListener('change', e => gpRead(Number(e.target.value)));
+  $('gp-cancel').addEventListener('click', () => { $('gp-in').hidden = true; gpScore = gpRes = null; gpMsg('Reads the chords and the strumming from a tab.'); });
+  $('gp-add').addEventListener('click', () => {
+    if (!gpRes || gpRes.error || !gpRes.progs.length) return;
+    const title = (gpScore.title || gpFile.replace(/\.[^.]+$/, '')).trim() || 'Imported song';
+    let folder = [title, gpScore.artist].filter(Boolean).join(' – ').slice(0, 40), k = 2;
+    const fl = progFolderList(); while (fl.includes(folder)) folder = folder.replace(/ \(\d+\)$/, '') + ` (${k++})`;
+    st.progFolders.push(folder);
+    const ids = gpRes.progs.map(x => {
+      const q = normProg(clone(x.prog)); q.id = newId(); q.folder = folder;
+      q.chords.forEach(c => { c.pairs = defaultPairs(c.tuning.length); });
+      st.progs.unshift(q); return q.id;
+    });
+    const song = { id: newId(), name: title, folder, loop: false, parts: gpRes.order.map(o => ({ id: ids[o.ref], times: Math.min(16, o.times) })) };
+    st.arrs.unshift(song);
+    st.arr = clone(song); $('arr-name').value = title;
+    st.progFolder = folder;
+    const first = st.progs.find(q => q.id === ids[0]);
+    st.prog = clone(first); progSel = -1; $('prog-name').value = first.name;
+    $('gp-in').hidden = true;
+    gpMsg(`Added “${folder}”: ${ids.length} progression${ids.length === 1 ? '' : 's'} and the song in order. Open Song to play it all.`);
+    save(); putOnNeck(first.chords[0]); renderProgs(); renderArr();
   });
 
   /* ---------- pages (sandbox): one section at a time, picked with the buttons; the address remembers it (#prog etc.) ---------- */

@@ -28,7 +28,8 @@ def page(body: str, name: str = "") -> str:
 shell = (SRC / "shell.html").read_text()
 finder = (SRC / "finder.js").read_text().replace(
     "if (typeof module !== 'undefined') module.exports = { parseChordName, findVoicings };", "")
-app = shell.replace("/*CHORD_ENGINE*/", (SRC / "chord.js").read_text()).replace("/*FINDER*/", finder)
+gpimport = (SRC / "gpimport.js").read_text().replace("if (typeof module !== 'undefined') module.exports = { gpTrackInfo, gpBestTrack, gpToParts };", "")
+app = shell.replace("/*CHORD_ENGINE*/", (SRC / "chord.js").read_text()).replace("/*FINDER*/", finder).replace("/*GPIMPORT*/", gpimport)
 (ROOT / "finder.html").write_text(page(app, "finder"))
 (ROOT / "index.html").write_text(page((SRC / "home.html").read_text(), "home"))
 

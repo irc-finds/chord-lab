@@ -86,6 +86,14 @@ Explain changes in plain words, never ask him to run commands, and push the chan
 - Saved sounds: `st.soundPresets` [{id, name, mode, p, order}] from Sound → "Save this sound"; they're in the Rig menu under
   My sounds (`st.fx.rig = 'u:' + id`). Sandbox Songs reads them from `chord-lab-sbx` and adds them to RIGS as "My sound: …"
   (rigState honours their pedal order), so any track can use them.
+- Guitar Pro → progressions (sandbox, My progressions page, "Load a Guitar Pro file…"): `sandbox/src/gpimport.js` (pure, also a Node
+  module; build.py inlines it at `/*GPIMPORT*/`). `gpBestTrack` picks the most chordal track (prefers "Rhythm"); `gpToParts` splits by
+  Guitar Pro section markers, drops silent bars at section ends, picks the section's meter, the grid (1/2/3/4 steps per count) and the
+  bar strum pattern most bars use (brush/pick-stroke marks if present, otherwise on-grid = down, in-between = up; all-dead = X,
+  mostly palm-muted = P; partly dead strings are muted strings in the shape). Each count's chord = the shape that rings longest in it;
+  lengths become Chord Lab's 4/2/1 bars and 2/1 counts. A section that repeats one phrase becomes one progression × times; sections
+  with identical music share one progression ("Intro / Verse / Solo"). Adding creates a folder "title – artist", the progressions, and
+  a song in the arranger in section order. Tested with his My Bloody Valentine "who sees you" tab (C F C F G C, 76 bpm, 16th strum).
 
 ## Editing
 Never edit `index.html`, `songs.html` or `dsharp-chart.html` directly: they're generated. Edit the files in `src/`, then run `python3 build.py`.
