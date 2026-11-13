@@ -116,6 +116,7 @@ Test before pushing:
 - iPhone: audio must play with the ringer switch off (`navigator.audioSession.type = 'playback'`, or a silent `<audio>` loop on older iOS),
   and must recover after he leaves the app and comes back (rebuild the AudioContext on the first tap after `visibilitychange`).
 - Must work on phone widths: 16px side padding and no sideways scrolling.
+- File pickers have no `accept` list: iPhone greys out .gp files it doesn't recognize. Check the file after it's picked instead.
 
 ## Committing
 Commit as `irc-finds` and push to `main`. If a push is refused, the Claude GitHub App needs access to this repo:
