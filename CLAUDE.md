@@ -105,7 +105,7 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   Pattern length menu; playback wraps `pl.bt` at the whole pattern; accents on each bar's 1); step `S` = stop (fade everything,
   GP export writes a rest); chord `beats` may be ¼ ⅓ ½ ⅔ ¾ 1 1½ 2 3 (`BEAT_LENS`) and `bars` 1–4. Tempo slider 40–300 plus a typed box.
 - Sandbox sound: `st.fx.pick` 0..1 (hard pick → felt: pick point, noise, extra smoothing, a few ms of attack; part of rigs and saved
-  sounds), `st.a4` 420–460 Hz reference (Tuning page: slider + typed + 440 reset; Songs reads it from `chord-lab-sbx`), and three
+  sounds), `st.a4` 420–460 Hz reference (on both the Tuning and Sound pages, ids a4 and a4s kept in sync by renderA4: slider + typed + 440 reset; Songs reads it from `chord-lab-sbx`), and three
   pedals: Swell (`swellEnv` per note, in both players; `stopGain` cancels the ramp before damping), Glide (wet LFO-modulated delay =
   trem-arm wobble), Reverse reverb (convolver with a rising, cut-off IR). DEFAULT_ORDER now has 12 pedals. Rig "Loveless" =
   pick 0.8 + swell, light fuzz, glide, amp, reverse reverb, reverb; level matches acoustic (rms ≈ 0.17).
