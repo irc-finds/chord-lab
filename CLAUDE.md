@@ -94,6 +94,21 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   lengths become Chord Lab's 4/2/1 bars and 2/1 counts. A section that repeats one phrase becomes one progression × times; sections
   with identical music share one progression ("Intro / Verse / Solo"). Adding creates a folder "title – artist", the progressions, and
   a song in the arranger in section order. Tested with his My Bloody Valentine "who sees you" tab (C F C F G C, 76 bpm, 16th strum).
+  Riff reading (tested with his Deftones "Crenshaw Punch / I'll Throw Rocks at You" tab, no markers, 126 bpm 8th-note downpicking):
+  blocks come from markers AND repeat signs (×N); a block is cut at its repeating phrase (period ≤ 8 bars) or, if its strum keeps
+  changing, into 4-bar phrases; unlabelled songs name progressions Riff A, B…; a junk first marker (a note) still names the Intro.
+  The chord is read per grid step (so 8th/16th chord changes survive), the strum as a 1-, 2- or 4-bar cycle that fits most bars,
+  rests after notes become S (stop). Strokes: Auto (8ths or slower at ≥ 100 bpm with no stroke marks = all down; else down on the
+  grid, up in between), or forced via the import's Strokes menu (`opt.direction` 'alt' | 'down'). If a marker/notice says e.g.
+  "452Hz", the import offers "Set A = 452 Hz".
+- Sandbox progression model (needed for riffs): `pat` may be 1, 2 or 4 bars (`patBarsOf(p)`; the editor shows a row per bar and a
+  Pattern length menu; playback wraps `pl.bt` at the whole pattern; accents on each bar's 1); step `S` = stop (fade everything,
+  GP export writes a rest); chord `beats` may be ¼ ⅓ ½ ⅔ ¾ 1 1½ 2 3 (`BEAT_LENS`) and `bars` 1–4. Tempo slider 40–300 plus a typed box.
+- Sandbox sound: `st.fx.pick` 0..1 (hard pick → felt: pick point, noise, extra smoothing, a few ms of attack; part of rigs and saved
+  sounds), `st.a4` 420–460 Hz reference (Tuning page: slider + typed + 440 reset; Songs reads it from `chord-lab-sbx`), and three
+  pedals: Swell (`swellEnv` per note, in both players; `stopGain` cancels the ramp before damping), Glide (wet LFO-modulated delay =
+  trem-arm wobble), Reverse reverb (convolver with a rising, cut-off IR). DEFAULT_ORDER now has 12 pedals. Rig "Loveless" =
+  pick 0.8 + swell, light fuzz, glide, amp, reverse reverb, reverb; level matches acoustic (rms ≈ 0.17).
 
 ## Editing
 Never edit `index.html`, `songs.html` or `dsharp-chart.html` directly: they're generated. Edit the files in `src/`, then run `python3 build.py`.

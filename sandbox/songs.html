@@ -785,9 +785,12 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
   const liveCache = new SoundCache();
   const cache = { t: liveCache, has(k) { return this.t.has(k); }, get(k) { return this.t.get(k); }, set(k, v) { this.t.set(k, v); return this; },
     get size() { return this.t.size; }, clear() { this.t.clear(); }, clearAll() { this.t.clearAll(); } };
-  const DEFAULT_ORDER = ['comp', 'gate', 'fuzz', 'drive', 'dist', 'chorus', 'amp', 'delay', 'reverb'];
+  const DEFAULT_ORDER = ['swell', 'comp', 'gate', 'fuzz', 'drive', 'dist', 'chorus', 'glide', 'amp', 'delay', 'rev', 'reverb'];
   function freshFx(reverbOn) {
-    return { mode: 'acoustic', rig: 'acoustic', order: DEFAULT_ORDER.slice(), p: {
+    return { mode: 'acoustic', rig: 'acoustic', order: DEFAULT_ORDER.slice(), pick: 0.35, p: {
+      swell: { on: false, time: 0.45, depth: 1 },
+      glide: { on: false, speed: 0.35, depth: 0.4 },
+      rev: { on: false, length: 0.4, mix: 0.45 },
       comp: { on: false, sustain: 0.5, level: 0.5 },
       fuzz: { on: false, gain: 0.75, gate: 0.4, stab: 0.5, tone: 0.55, level: 0.5 },
       drive: { on: false, drive: 0.4, tone: 0.5, level: 0.5 },
@@ -802,14 +805,17 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
   const pct = v => Math.round(v * 100) + '%';
   const dbTxt = v => { const x = Math.round((v - 0.5) * 24); return (x > 0 ? '+' : '') + x + ' dB'; };
   const PEDALS = [
+    { id: 'swell', name: 'Swell', sub: 'slow gear: fades every note in, no pick', color: '#c99a3a', knobs: [['time', 'Swell', v => Math.round(30 + 1470 * v * v) + ' ms'], ['depth', 'Depth', pct]] },
     { id: 'comp', name: 'Compressor', sub: 'evens out, adds sustain', color: '#3f9a6e', knobs: [['sustain', 'Sustain', pct], ['level', 'Level', pct]] },
     { id: 'fuzz', name: 'Fuzz', sub: 'gated and sputtery', color: '#d0562c', knobs: [['gain', 'Gain', pct], ['gate', 'Gate', pct], ['stab', 'Stab', pct], ['tone', 'Tone', pct], ['level', 'Level', pct]] },
     { id: 'gate', name: 'Noise gate', sub: 'silence between chugs', color: '#717a8c', knobs: [['threshold', 'Threshold', pct], ['release', 'Release', v => Math.round(20 + 480 * v) + ' ms']] },
     { id: 'drive', name: 'Overdrive', sub: 'warm mid push', color: '#86b23a', knobs: [['drive', 'Drive', pct], ['tone', 'Tone', pct], ['level', 'Level', pct]] },
     { id: 'dist', name: 'Distortion', sub: 'high-gain metal', color: '#c0333f', knobs: [['gain', 'Gain', pct], ['tight', 'Tight', v => Math.round(40 * Math.pow(10, v)) + ' Hz'], ['low', 'Low', dbTxt], ['mid', 'Mid', dbTxt], ['high', 'High', dbTxt], ['level', 'Level', pct]] },
     { id: 'chorus', name: 'Chorus', sub: 'shimmer and width', color: '#3a86cc', knobs: [['rate', 'Rate', v => (0.15 * Math.pow(40, v)).toFixed(1) + ' Hz'], ['depth', 'Depth', pct], ['mix', 'Mix', pct]] },
+    { id: 'glide', name: 'Glide', sub: 'tremolo-arm wobble', color: '#9a6fc0', knobs: [['speed', 'Speed', v => (0.1 * Math.pow(30, v)).toFixed(2) + ' Hz'], ['depth', 'Depth', pct]] },
     { id: 'amp', name: 'Amp + cabinet', sub: 'preamp, tone stack, 4×12 cab', color: '#a0784e', knobs: [['gain', 'Gain', pct], ['bass', 'Bass', dbTxt], ['mid', 'Mid', dbTxt], ['treble', 'Treble', dbTxt], ['volume', 'Volume', pct]] },
     { id: 'delay', name: 'Delay', sub: 'echoes', color: '#7a62c8', knobs: [['time', 'Time', v => Math.round((0.06 + 1.14 * v) * 1000) + ' ms'], ['feedback', 'Repeats', pct], ['mix', 'Mix', pct]] },
+    { id: 'rev', name: 'Reverse reverb', sub: 'a tail that rises into each chord', color: '#4f7fa8', knobs: [['length', 'Length', v => (0.25 + 2.25 * v).toFixed(2) + ' s'], ['mix', 'Mix', pct]] },
     { id: 'reverb', name: 'Reverb', sub: 'room to cathedral', color: '#2f9aa3', knobs: [['size', 'Size', v => (0.6 + 7.4 * v).toFixed(1) + ' s'], ['mix', 'Mix', pct]] }
   ];
   const RIGS = [
@@ -822,6 +828,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     ['djent', 'Djent (tight and gated)', 'electric', { gate: { on: true, threshold: 0.4, release: 0.15 }, drive: { on: true, drive: 0.05, tone: 0.65, level: 0.85 }, dist: { on: true, gain: 0.72, tight: 0.75, low: 0.55, mid: 0.6, high: 0.55, level: 0.62 }, amp: { on: true, gain: 0.1, bass: 0.5, mid: 0.55, treble: 0.55, volume: 0.6 }, reverb: { on: true, size: 0.12, mix: 0.08 } }],
     ['openmetal', 'Open-tuning metal (thick and wide)', 'electric', { gate: { on: true, threshold: 0.2, release: 0.45 }, dist: { on: true, gain: 0.8, tight: 0.3, low: 0.7, mid: 0.42, high: 0.45, level: 0.5 }, chorus: { on: true, rate: 0.2, depth: 0.3, mix: 0.25 }, amp: { on: true, gain: 0.2, bass: 0.6, mid: 0.45, treble: 0.45, volume: 0.6 }, delay: { on: true, time: 0.35, feedback: 0.25, mix: 0.12 }, reverb: { on: true, size: 0.55, mix: 0.3 } }],
     ['classicmetal', 'Classic metal (scooped mids)', 'electric', { gate: { on: true, threshold: 0.3, release: 0.2 }, dist: { on: true, gain: 0.65, tight: 0.5, low: 0.65, mid: 0.25, high: 0.65, level: 0.5 }, amp: { on: true, gain: 0.15, bass: 0.55, mid: 0.45, treble: 0.55, volume: 0.6 }, reverb: { on: true, size: 0.15, mix: 0.12 } }],
+    ['loveless', 'Loveless (swell, glide, reverse reverb)', 'electric', { pick: 0.8, swell: { on: true, time: 0.5, depth: 0.85 }, fuzz: { on: true, gain: 0.55, gate: 0.04, stab: 0.55, tone: 0.32, level: 0.5 }, glide: { on: true, speed: 0.3, depth: 0.45 }, amp: { on: true, gain: 0.15, bass: 0.5, mid: 0.42, treble: 0.42, volume: 0.6 }, rev: { on: true, length: 0.45, mix: 0.5 }, reverb: { on: true, size: 0.6, mix: 0.4 } }],
     ['wall', 'Wall of fuzz (shoegaze)', 'electric', { fuzz: { on: true, gain: 0.9, gate: 0.08, stab: 0.5, tone: 0.4, level: 0.5 }, chorus: { on: true, rate: 0.3, depth: 0.6, mix: 0.5 }, amp: { on: true, gain: 0.3, bass: 0.55, mid: 0.4, treble: 0.4, volume: 0.6 }, delay: { on: true, time: 0.35, feedback: 0.5, mix: 0.3 }, reverb: { on: true, size: 0.85, mix: 0.6 } }]
   ];
 
@@ -892,6 +899,16 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     chain(amp.in, amp.pre, amp.ws, amp.bass, amp.mid, amp.treb, amp.cabHp, amp.cabRes, amp.cabHonk, amp.cabLp, amp.cabLp2, amp.vol, amp.out); n.stages.amp = amp;
     const dl = { in: G(), out: G(), dry: G(), dl: c.createDelay(2), fb: G(), tone: F('lowpass', 3200, 0.7), wet: G() };
     chain(dl.in, dl.dry, dl.out); chain(dl.in, dl.dl, dl.tone, dl.wet, dl.out); dl.tone.connect(dl.fb); dl.fb.connect(dl.dl); n.stages.delay = dl;
+    // swell: the fade-in happens on each note (see swellEnv); the stage itself just passes sound through
+    const sw = { in: G(), out: G() }; sw.in.connect(sw.out); n.stages.swell = sw;
+    // glide: a short delay whose length drifts, all wet, so the pitch bends gently up and down (Kevin Shields' trem arm)
+    const gl = { in: G(), out: G(), dl: c.createDelay(0.2), lfo: c.createOscillator(), lfo2: c.createOscillator(), depth: G(), depth2: G() };
+    gl.dl.delayTime.value = 0.03; gl.lfo.type = 'sine'; gl.lfo2.type = 'triangle';
+    gl.lfo.connect(gl.depth); gl.lfo2.connect(gl.depth2); gl.depth.connect(gl.dl.delayTime); gl.depth2.connect(gl.dl.delayTime);
+    gl.lfo.start(); gl.lfo2.start(); chain(gl.in, gl.dl, gl.out); n.stages.glide = gl;
+    // reverse reverb: an echo cloud that grows and then cuts off, so it rises after each chord instead of trailing away
+    const rr = { in: G(), out: G(), dry: G(), conv: c.createConvolver(), tone: F('lowpass', 4200, 0.6), wet: G(), len: 0 };
+    chain(rr.in, rr.dry, rr.out); chain(rr.in, rr.conv, rr.tone, rr.wet, rr.out); n.stages.rev = rr;
     const rv = { in: G(), out: G(), dry: G(), conv: c.createConvolver(), wet: G(), size: 0 };
     chain(rv.in, rv.dry, rv.out); chain(rv.in, rv.conv, rv.wet, rv.out); n.stages.reverb = rv;
     fx = n;
@@ -917,6 +934,11 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
   function makeIR(sec) {
     const len = Math.floor(ctx.sampleRate * sec), ir = ctx.createBuffer(2, len, ctx.sampleRate);
     for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+    return ir;
+  }
+  function makeReverseIR(sec) {
+    const len = Math.floor(ctx.sampleRate * sec), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) { const x = i / len; d[i] = (Math.random() * 2 - 1) * x * x * (x > 0.97 ? (1 - x) / 0.03 : 1); } }
     return ir;
   }
   function applyFx() {
@@ -964,6 +986,14 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     // delay
     set(S.delay.dl.delayTime, 0.06 + 1.14 * P.delay.time);
     set(S.delay.fb.gain, 0.85 * P.delay.feedback); set(S.delay.wet.gain, 0.9 * P.delay.mix); set(S.delay.dry.gain, 1);
+    // glide
+    const gf = 0.1 * Math.pow(30, P.glide.speed);
+    set(S.glide.lfo.frequency, gf); set(S.glide.lfo2.frequency, gf * 0.37);
+    set(S.glide.depth.gain, 0.0045 * P.glide.depth * P.glide.depth / Math.max(0.4, gf)); set(S.glide.depth2.gain, 0.0025 * P.glide.depth);
+    // reverse reverb
+    const rl = 0.25 + 2.25 * P.rev.length;
+    if (Math.abs(rl - S.rev.len) > 0.02) { S.rev.conv.buffer = makeReverseIR(rl); S.rev.len = rl; }
+    set(S.rev.wet.gain, 1.6 * P.rev.mix / Math.sqrt(1 + rl)); set(S.rev.dry.gain, 1 - 0.3 * P.rev.mix);
     // reverb
     const size = 0.6 + 7.4 * P.reverb.size;
     if (Math.abs(size - S.reverb.size) > 0.05) { S.reverb.conv.buffer = makeIR(size); S.reverb.size = size; }
@@ -974,9 +1004,10 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
   function pluck(midi, tone) {
     tone = tone ?? 2;
     const elec = st.fx.mode === 'electric';
-    const key = midi + '|' + st.ring + '|' + tone + '|' + (elec ? 'e' : 'a');
+    const pick = st.fx.pick ?? 0.35, a4 = st.a4 || 440;
+    const key = midi + '|' + st.ring + '|' + tone + '|' + (elec ? 'e' : 'a') + '|' + pick.toFixed(2) + '|' + a4;
     if (cache.has(key)) return cache.get(key);
-    const sr = ctx.sampleRate, f = 440 * Math.pow(2, (midi - 69) / 12);
+    const sr = ctx.sampleRate, f = a4 * Math.pow(2, (midi - 69) / 12);
     const N = Math.max(2, Math.floor(sr / f - 0.5));
     const ringSec = elec ? Math.min(9, st.ring * 1.7) : st.ring;   // solid body: longer sustain
     const len = Math.floor(sr * (ringSec + 0.4));
@@ -984,11 +1015,13 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     const ring = new Float32Array(N);
     // excitation: the string's shape when plucked (a triangle peaking at the pick point) plus a little noise,
     // so every note has a solid fundamental. Thin strings are picked nearer the bridge = brighter.
-    const pp = elec ? 0.09 + tone * 0.012 : 0.12 + tone * 0.025;
+    // pick: 0 = hard pick near the bridge (bright, clicky) … 1 = thumb or felt over the neck (round, no click)
+    const pp = (elec ? 0.09 + tone * 0.012 : 0.12 + tone * 0.025) + Math.max(0, pick - 0.35) * 0.35;
+    const noiseAmt = 0.3 * (1 + (0.35 - pick) * 1.6);
     let mean = 0;
-    for (let i = 0; i < N; i++) { const x = i / N; ring[i] = (x < pp ? x / pp : (1 - x) / (1 - pp)) + (Math.random() * 2 - 1) * 0.3; mean += ring[i]; }
+    for (let i = 0; i < N; i++) { const x = i / N; ring[i] = (x < pp ? x / pp : (1 - x) / (1 - pp)) + (Math.random() * 2 - 1) * Math.max(0.02, noiseAmt); mean += ring[i]; }
     mean /= N; for (let i = 0; i < N; i++) ring[i] -= mean;
-    const smooth = elec ? Math.ceil(tone / 2) : tone;
+    const smooth = (elec ? Math.ceil(tone / 2) : tone) + Math.round(Math.max(0, pick - 0.35) * 9);
     for (let k = 0; k < smooth; k++) for (let i = 0; i < N; i++) ring[i] = (ring[i] + ring[(i + 1) % N]) / 2;
     const g = Math.pow(0.03, 1 / (f * ringSec));
     let idx = 0, peak = 0;
@@ -1001,22 +1034,34 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     // hollow, snappy electric character). Modelled as the string minus a slightly delayed copy of itself.
     if (elec) { const P = Math.max(1, Math.round(N * 0.16)); for (let i = len - 1; i >= P; i--) d[i] -= 0.9 * d[i - P]; }
     for (let i = 0; i < len; i++) if (Math.abs(d[i]) > peak) peak = Math.abs(d[i]);
-    const fade = Math.floor(sr * 0.25);
-    for (let i = 0; i < len; i++) { d[i] /= (peak || 1); if (i > len - fade) d[i] *= (len - i) / fade; }
+    const fade = Math.floor(sr * 0.25), att = Math.floor(sr * Math.max(0, pick - 0.35) * 0.02);   // a soft pick takes a moment to set the string going
+    for (let i = 0; i < len; i++) { d[i] /= (peak || 1); if (i > len - fade) d[i] *= (len - i) / fade; if (i < att) d[i] *= i / att; }
     const item = { buf, rate: f * (N + 0.5) / sr };
     if (cache.size > 160) cache.clear();
     cache.set(key, item);
     return item;
   }
+  // swell pedal: every note starts quiet and blooms to full, which hides the pick (a Boss Slow Gear, but it always knows
+  // exactly when a note starts)
+  function swellEnv(g, when, gain) {
+    const sw = st.fx && st.fx.p && st.fx.p.swell;
+    if (!sw || !sw.on) return false;
+    const T = 0.03 + 1.47 * sw.time * sw.time;
+    g.gain.setValueAtTime(gain * (1 - sw.depth), when);
+    g.gain.linearRampToValueAtTime(gain, when + T);
+    g.swelling = true;
+    return true;
+  }
+  function stopGain(g, t) { if (g.swelling) { if (g.gain.cancelAndHoldAtTime) g.gain.cancelAndHoldAtTime(t); else g.gain.cancelScheduledValues(t); } }
 
   function palmAt(v, t) {
     if (v.stopped) return; v.stopped = true;
-    try { v.g.gain.setTargetAtTime(0, t + 0.035, 0.06); v.src.stop(t + 0.7); } catch (e) {}
+    try { stopGain(v.g, t); v.g.gain.setTargetAtTime(0, t + 0.035, 0.06); v.src.stop(t + 0.7); } catch (e) {}
   }
   // damp one voice at time t (a string being re-struck, or the fretting hand letting go)
   function fadeAt(v, t) {
     if (v.stopped) return; v.stopped = true;
-    try { v.g.gain.setTargetAtTime(0, t, 0.012); v.src.stop(t + 0.15); } catch (e) {}
+    try { stopGain(v.g, t); v.g.gain.setTargetAtTime(0, t, 0.012); v.src.stop(t + 0.15); } catch (e) {}
   }
   function hush() {
     const now = ctx.currentTime;
@@ -1028,10 +1073,12 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
   try {
     const cl = JSON.parse(localStorage.getItem('chord-lab-sbx') || 'null');
     (cl && Array.isArray(cl.soundPresets) ? cl.soundPresets : []).forEach(x => {
-      if (x && x.id && x.name && x.p) RIGS.push(['u:' + x.id, 'My sound: ' + x.name, x.mode === 'electric' ? 'electric' : 'acoustic', x.p, x.order]);
+      if (x && x.id && x.name && x.p) RIGS.push(['u:' + x.id, 'My sound: ' + x.name, x.mode === 'electric' ? 'electric' : 'acoustic', Object.assign({}, x.p, { pick: x.pick ?? 0.35 }), x.order]);
     });
   } catch (e) {}
-  const st = { fx: freshFx(false), ring: 2.6 };
+  const st = { fx: freshFx(false), ring: 2.6, a4: 440 };
+  // the reference pitch set in Chord Finder (A = 420 … 460 Hz)
+  try { const cl = JSON.parse(localStorage.getItem('chord-lab-sbx') || 'null'); if (cl && cl.a4 >= 420 && cl.a4 <= 460) st.a4 = cl.a4; } catch (e) {}
   const offGateReady = new WeakSet();
   { const baseLoad = loadGate;
     loadGate = (c, gt) => {
@@ -1562,6 +1609,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     const f = freshFx(false);
     for (const k in f.p) { f.p[k].on = false; if (r[3][k]) Object.assign(f.p[k], r[3][k]); }
     if (Array.isArray(r[4]) && r[4].length === DEFAULT_ORDER.length) f.order = r[4].slice();
+    f.pick = r[3].pick ?? 0.35;
     f.mode = r[2]; f.rig = r[0]; return f;
   }
   // Each guitar track: a volume/mute gain (tr.post) and one pedal chain per rig it uses, all feeding that gain.
@@ -1656,13 +1704,13 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
   function pluckTo(midi, when, gain, tone, dest) {
     const p = pluck(midi, tone);
     const src = ctx.createBufferSource(); src.buffer = p.buf; src.playbackRate.value = p.rate;
-    const g = ctx.createGain(); g.gain.value = gain;
+    const g = ctx.createGain(); g.gain.value = gain; swellEnv(g, when, gain);
     src.connect(g); g.connect(dest); src.start(when);
     const v = { src, g, rate: p.rate, end: when + p.buf.duration / p.rate, stopped: false, srcs: [src] };
     live.push(v); return v;
   }
   function padTo(midi, when, d, gain, dest) {
-    const f = 440 * Math.pow(2, (midi - 69) / 12), g = ctx.createGain(), lp = ctx.createBiquadFilter();
+    const f = (st.a4 || 440) * Math.pow(2, (midi - 69) / 12), g = ctx.createGain(), lp = ctx.createBiquadFilter();
     lp.type = 'lowpass'; lp.frequency.value = Math.min(5000, f * 5); lp.Q.value = 0.5;
     g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(gain, when + 0.04); g.gain.setTargetAtTime(gain * 0.7, when + 0.05, 0.3); g.gain.setTargetAtTime(0, when + d, 0.09);
     const srcs = [0.996, 1.004].map(dt => { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f * dt; o.connect(lp); o.start(when); o.stop(when + d + 0.8); return o; });
