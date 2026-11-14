@@ -829,7 +829,7 @@ footer { max-width: calc(1120px / var(--z, 1)); margin: 20px auto 0; font-size: 
     const idx = fr.map((f, i) => f !== null && f > 0 ? i : null).filter(i => i !== null);
     if (!idx.length) return null;
     const fs = idx.map(i => fr[i]), minF = Math.min(...fs), maxF = Math.max(...fs);
-    const limit = minF >= 12 ? 6 : 5;   // frets are closer together up high
+    const limit = minF >= 12 ? 6 : minF >= 5 ? 5 : 4;   // frets get closer together up the neck: 5 frets wide near the nut, 6 mid-neck, 7 up high
     if (maxF - minF > limit) return { kind: 'stretch', minF, maxF, span: maxF - minF + 1 };
     // one finger can bar every note at the lowest fret (index) and every note at the highest fret (pinky, like a
     // Cerati-style high pinky bar), as long as no open string, or one fretted lower, sits under the bar

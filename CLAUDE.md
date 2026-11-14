@@ -25,7 +25,7 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   Media Session gives lock-screen controls; the direct output is restored after stop. Don't rebuild the AudioContext on
   return while a background progression is still running.
   Impossible-shape check: `unplayable(frets)` returns `{kind:'stretch', minF, maxF, span}` or `{kind:'fingers', fingers, barre}`
-  or null. A shape is impossible if the fretted notes span more than 5 frets (6 from fret 12 up) or need more than 4 fingers
+  or null. A shape is impossible if the fretted notes span more than 4 frets (5 wide) when the lowest is below fret 5, more than 5 from fret 5, 6 from fret 12 up (he flagged 0-0-5-2-6-1 in D# drone as wrongly passing) or need more than 4 fingers
   (a barre at the lowest fret counts as one, and so does a bar at the highest fret, e.g. Cerati's 4-6-6-8-8-8 pinky bar; a thumb
   over the low string adds one). `playabilityWarning(p, nickname)` writes his copy: head "That shape isn't playable, ${nickname}.",
   body for stretch "It needs a stretch from fret X to fret Y, and that's N frets wide, Allan Holdsworth." or for fingers
