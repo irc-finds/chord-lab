@@ -105,7 +105,7 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   new block (smaller drifts are ignored so a rit doesn't splinter). Riff names go A…Z, then AA, AB…
 - Saving a progression (both apps, `saveProg`): Save updates the saved progression open in the editor (`st.prog.id`) when the
   name is unchanged; a new name or an unsaved progression makes a new one in the open folder. Names are never matched across
-  folders (he lost work when "Riff A" overwrote an imported song's Riff A); a clash in the same folder becomes "Name (2)". New clears the id.
+  folders (so a new "Riff A" can't overwrite an imported song's Riff A); a clash in the same folder becomes "Name (2)". New clears the id.
 - Sandbox My progressions: a saved song's parts fold inside the song row ("▸ Show its N parts", `openSongs`); folder chip counts
   count songs + loose progressions. Deleting a song offers "Just the song" or "Song + its N parts" (parts no other song uses).
   A folder has "Delete everything inside" (confirm; the folder stays). Phones: name full width, folder menu/.gp/× on a line below.
