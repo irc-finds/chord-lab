@@ -274,6 +274,15 @@ select { border: 1px solid var(--line); background: var(--bg); border-radius: 9p
 .saved-item.prg .meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
 .saved-item select.mv { max-width: 118px; font-size: 12px; padding: 2px 4px; }
 .saved-item .tag { font-family: var(--font-display); font-weight: 600; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--root); margin-right: 6px; }
+@media (max-width: 520px) {
+  .saved-item.prg button.load { grid-column: 1 / -1; }
+  .saved-item.prg select.mv { grid-column: 2; }
+}
+.saved-item.sub { margin-left: 18px; border-style: dashed; padding-block: 4px; }
+.saved-item.sub .nm { font-size: 14px; }
+.saved-item .parts-toggle { grid-column: 1 / -1; justify-self: start; border: 0; background: transparent; color: var(--root); font-size: 12.5px; padding: 2px 0; }
+.btn.danger { color: var(--warn); border-color: var(--warn); }
+.warn-t { color: var(--warn); }
 .saved-item .ask { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; color: var(--warn); }
 .folders { display: flex; flex-wrap: wrap; gap: 5px; }
 .folders button { border: 1px solid var(--line); background: var(--bg); border-radius: 4px; padding: 3px 9px; font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: baseline; }
@@ -308,7 +317,7 @@ select { border: 1px solid var(--line); background: var(--bg); border-radius: 9p
 .saved-item .meta { font-family: var(--font-data); font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
 .saved-item .del { border: 0; background: transparent; color: var(--muted); font-size: 18px; width: 32px; height: 32px; border-radius: 8px; }
 .saved-item .del:hover { background: var(--faint); }
-.saved-item.tun, .saved-item.prg { grid-template-columns: minmax(0, 1fr) auto auto; }
+.saved-item.tun { grid-template-columns: minmax(0, 1fr) auto auto; }
 .saved-item.tun.on { border-color: var(--accent); }
 .saved-item .ren { border: 0; background: transparent; color: var(--muted); font-size: 13px; padding: 0 8px; height: 32px; border-radius: 8px; }
 .saved-item .ren:hover { background: var(--faint); }
@@ -1531,6 +1540,7 @@ footer { display: none; }
   const progById = id => st.progs.find(q => q.id === id);
   const progFolderList = () => [...new Set([...st.progFolders, ...st.progs.map(q => q.folder), ...st.arrs.map(x => x.folder)].filter(Boolean))].sort((x, y) => x.localeCompare(y));
   let progFoldEdit = null, progAsk = null;
+  const openSongs = new Set();   // songs whose parts are unfolded in My progressions
   function folderSelect(cur, label, onPick) {
     const sel = document.createElement('select'); sel.className = 'mv'; sel.setAttribute('aria-label', label);
     [['', 'No folder'], ...progFolderList().map(f => [f, f]), ['\u0000new', '+ New folder…']].forEach(([v, l]) => sel.appendChild(new Option(l, v)));
@@ -1545,7 +1555,8 @@ footer { display: none; }
     const fl = progFolderList();
     if (st.progFolder !== 'all' && st.progFolder !== '' && !fl.includes(st.progFolder)) st.progFolder = 'all';
     const cur = st.progFolder, inF = x => cur === 'all' || (x.folder || '') === cur;
-    const cnt = f => st.progs.filter(q => (q.folder || '') === f).length + st.arrs.filter(x => (x.folder || '') === f).length;
+    const partIds = new Set(); st.arrs.forEach(x => x.parts.forEach(pt => partIds.add(pt.id)));
+    const cnt = f => st.progs.filter(q => (q.folder || '') === f && !partIds.has(q.id)).length + st.arrs.filter(x => (x.folder || '') === f).length;
     const fb = $('prog-folders'); fb.innerHTML = '';
     const chip = (v, label, n) => {
       const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', String(cur === v));
@@ -1554,7 +1565,7 @@ footer { display: none; }
       fb.appendChild(b);
     };
     const total = st.progs.length + st.arrs.length;
-    chip('all', 'All', total);
+    chip('all', 'All', st.progs.filter(q => !partIds.has(q.id)).length + st.arrs.length);
     fl.forEach(f => chip(f, f, cnt(f)));
     if (fl.length && cnt('')) chip('', 'No folder', cnt(''));
     const add = document.createElement('button'); add.type = 'button'; add.className = 'add'; add.textContent = '+ Folder';
@@ -1565,7 +1576,24 @@ footer { display: none; }
     const fe = $('prog-fold'); fe.innerHTML = '';
     const isFolder = cur !== 'all' && cur !== '';
     fe.hidden = !(progFoldEdit || isFolder);
-    if (progFoldEdit) {
+    if (progFoldEdit && progFoldEdit.kind === 'empty' && !isFolder) progFoldEdit = null;
+    if (progFoldEdit && progFoldEdit.kind === 'empty') {
+      const ps = st.progs.filter(q => q.folder === cur), ss = st.arrs.filter(x => x.folder === cur);
+      const say = [ss.length ? `${ss.length} song${ss.length === 1 ? '' : 's'}` : '', ps.length ? `${ps.length} progression${ps.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ');
+      const t = document.createElement('span'); t.className = 'hint warn-t'; t.textContent = `Delete ${say} in “${cur}” for good? The folder stays.`;
+      const y = document.createElement('button'); y.type = 'button'; y.className = 'btn danger'; y.textContent = 'Delete all';
+      const n = document.createElement('button'); n.type = 'button'; n.className = 'btn'; n.textContent = 'Keep';
+      y.addEventListener('click', () => {
+        if (pl && pl.song) stopProg();
+        const gone = new Set(ps.map(q => q.id));
+        st.progs = st.progs.filter(q => q.folder !== cur);
+        st.arrs = st.arrs.filter(x => x.folder !== cur);
+        if (st.arr.parts.some(pt => gone.has(pt.id))) { st.arr = { name: '', parts: [], loop: false }; $('arr-name').value = ''; }
+        progFoldEdit = null; save(); renderProgs(); progMsg(`Emptied “${cur}”.`);
+      });
+      n.addEventListener('click', () => { progFoldEdit = null; renderProgs(); });
+      fe.append(t, y, n);
+    } else if (progFoldEdit) {
       const inp = document.createElement('input'); inp.type = 'text'; inp.maxLength = 40; inp.placeholder = 'Folder name, e.g. Now and Again';
       inp.value = progFoldEdit.kind === 'rename' ? cur : '';
       const ok = document.createElement('button'); ok.type = 'button'; ok.className = 'btn primary'; ok.textContent = progFoldEdit.kind === 'rename' ? 'Rename' : 'Create';
@@ -1588,6 +1616,10 @@ footer { display: none; }
       const lab = document.createElement('span'); lab.className = 'hint'; lab.textContent = 'Folder “' + cur + '”:';
       const rn = document.createElement('button'); rn.type = 'button'; rn.className = 'btn'; rn.textContent = 'Rename';
       rn.addEventListener('click', () => { progFoldEdit = { kind: 'rename' }; renderProgs(); });
+      const inside = st.progs.filter(q => q.folder === cur).length + st.arrs.filter(x => x.folder === cur).length;
+      const em = document.createElement('button'); em.type = 'button'; em.className = 'btn'; em.textContent = 'Delete everything inside';
+      em.disabled = !inside;
+      em.addEventListener('click', () => { progFoldEdit = { kind: 'empty' }; renderProgs(); });
       const dl = document.createElement('button'); dl.type = 'button'; dl.className = 'btn'; dl.textContent = 'Delete folder';
       dl.title = 'What\'s inside stays, without a folder';
       dl.addEventListener('click', () => {
@@ -1595,12 +1627,12 @@ footer { display: none; }
         st.progs.forEach(q => { if (q.folder === cur) q.folder = ''; }); st.arrs.forEach(x => { if (x.folder === cur) x.folder = ''; });
         st.progFolder = 'all'; save(); renderProgs();
       });
-      fe.append(lab, rn, dl);
+      fe.append(lab, rn, em, dl);
     }
 
     const list = $('progs'); list.innerHTML = '';
-    const row = (kind, x) => {
-      const item = document.createElement('div'); item.className = 'saved-item prg' + (kind === 'song' ? ' song' : '');
+    const row = (kind, x, sub) => {
+      const item = document.createElement('div'); item.className = 'saved-item prg' + (kind === 'song' ? ' song' : '') + (sub ? ' sub' : '');
       const load = document.createElement('button'); load.type = 'button'; load.className = 'load';
       load.innerHTML = '<span class="nm"></span><span class="meta"></span>';
       const nmEl = load.querySelector('.nm');
@@ -1636,6 +1668,8 @@ footer { display: none; }
       if (progAsk === x.id) {
         const ask = document.createElement('div'); ask.className = 'ask';
         const used = kind === 'prog' ? st.arrs.filter(y => y.parts.some(pt => pt.id === x.id)).map(y => y.name) : [];
+        // a song's own parts: progressions no other song uses
+        const own = kind === 'song' ? [...new Set(x.parts.map(pt => pt.id))].filter(id => progById(id) && !st.arrs.some(y => y !== x && y.parts.some(pt => pt.id === id))) : [];
         const y = document.createElement('button'); y.type = 'button'; y.className = 'btn'; y.textContent = 'Delete';
         const n = document.createElement('button'); n.type = 'button'; n.className = 'btn'; n.textContent = 'Keep';
         y.addEventListener('click', () => {
@@ -1644,13 +1678,38 @@ footer { display: none; }
           save(); renderProgs(); progMsg(`Deleted “${x.name}”.`);
         });
         n.addEventListener('click', () => { progAsk = null; renderProgs(); });
-        ask.append(used.length ? `Delete? It's a part of ${used.join(', ')}.` : 'Delete for good?', y, n);
+        if (own.length) {
+          y.textContent = 'Just the song';
+          const yy = document.createElement('button'); yy.type = 'button'; yy.className = 'btn danger'; yy.textContent = `Song + its ${own.length} part${own.length === 1 ? '' : 's'}`;
+          yy.addEventListener('click', () => {
+            progAsk = null; const gone = new Set(own);
+            st.arrs = st.arrs.filter(z => z !== x); st.progs = st.progs.filter(q => !gone.has(q.id));
+            if (st.arr.parts.some(pt => gone.has(pt.id))) { if (pl && pl.song) stopProg(); st.arr = { name: '', parts: [], loop: false }; $('arr-name').value = ''; }
+            save(); renderProgs(); progMsg(`Deleted “${x.name}” and its parts.`);
+          });
+          ask.append('Delete this song?', y, yy, n);
+        } else ask.append(used.length ? `Delete? It's a part of ${used.join(', ')}.` : 'Delete for good?', y, n);
         item.appendChild(ask);
       }
       list.appendChild(item);
     };
-    const songs = st.arrs.filter(inF), progs = st.progs.filter(inF);
-    songs.forEach(x => row('song', x)); progs.forEach(x => row('prog', x));
+    const songs = st.arrs.filter(inF);
+    // progressions that are parts of a song shown here fold inside that song instead of filling the list
+    const inSong = new Set(); songs.forEach(x => x.parts.forEach(pt => inSong.add(pt.id)));
+    const progs = st.progs.filter(q => inF(q) && !inSong.has(q.id));
+    songs.forEach(x => {
+      row('song', x);
+      const ids = [...new Set(x.parts.map(pt => pt.id))].filter(id => progById(id));
+      if (!ids.length) return;
+      const open = openSongs.has(x.id);
+      const tg = document.createElement('button'); tg.type = 'button'; tg.className = 'parts-toggle';
+      tg.setAttribute('aria-expanded', String(open));
+      tg.textContent = (open ? '▾ Hide' : '▸ Show') + ` its ${ids.length} part${ids.length === 1 ? '' : 's'}`;
+      tg.addEventListener('click', () => { if (openSongs.has(x.id)) openSongs.delete(x.id); else openSongs.add(x.id); renderProgs(); });
+      list.lastChild.appendChild(tg);
+      if (open) ids.forEach(id => row('prog', progById(id), true));
+    });
+    progs.forEach(x => row('prog', x));
     $('progs-count').textContent = total ? `${st.progs.length} progression${st.progs.length === 1 ? '' : 's'}` + (st.arrs.length ? ` · ${st.arrs.length} song${st.arrs.length === 1 ? '' : 's'}` : '') : '';
     $('progs-empty').textContent = !total ? 'Nothing saved yet. Saved progressions land here; make a folder per song to keep its parts together.'
       : (!songs.length && !progs.length ? 'Nothing in this folder yet. Move things here with their folder menu, or save while this folder is open.' : '');

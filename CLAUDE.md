@@ -101,6 +101,11 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   rests after notes become S (stop). Strokes: Auto (8ths or slower at ≥ 100 bpm with no stroke marks = all down; else down on the
   grid, up in between), or forced via the import's Strokes menu (`opt.direction` 'alt' | 'down'). If a marker/notice says e.g.
   "452Hz", the import offers "Set A = 452 Hz".
+  Tempo: each bar's tempo comes from `masterBar.tempoAutomations`; a change of ≥ 3 bpm from the start of the current block opens a
+  new block (smaller drifts are ignored so a rit doesn't splinter). Riff names go A…Z, then AA, AB…
+- Sandbox My progressions: a saved song's parts fold inside the song row ("▸ Show its N parts", `openSongs`); folder chip counts
+  count songs + loose progressions. Deleting a song offers "Just the song" or "Song + its N parts" (parts no other song uses).
+  A folder has "Delete everything inside" (confirm; the folder stays). Phones: name full width, folder menu/.gp/× on a line below.
 - Sandbox progression model (needed for riffs): `pat` may be 1, 2 or 4 bars (`patBarsOf(p)`; the editor shows a row per bar and a
   Pattern length menu; playback wraps `pl.bt` at the whole pattern; accents on each bar's 1); step `S` = stop (fade everything,
   GP export writes a rest); chord `beats` may be ¼ ⅓ ½ ⅔ ¾ 1 1½ 2 3 (`BEAT_LENS`) and `bars` 1–4. Tempo slider 40–300 plus a typed box.

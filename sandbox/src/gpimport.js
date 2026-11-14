@@ -76,7 +76,9 @@ function gpToParts(score, ti, opt) {
       label = t && t.length <= 28 && !/^\*/.test(t) ? t : (!blocks.length ? 'Intro' : '');
       open = null;
     }
-    if (mb.isRepeatStart || !open || b.section !== null) { open = { label, bars: [], times: 1, sectionStart: b.section !== null || !blocks.length }; blocks.push(open); }
+    // a tempo change of 3 bpm or more starts a new part (smaller drifts don't, so a slow rit doesn't splinter the song)
+    const tempoMoved = open && open.bars.length && Math.abs(b.tempo - open.bars[0].tempo) >= 3;
+    if (mb.isRepeatStart || !open || b.section !== null || tempoMoved) { open = { label, bars: [], times: 1, sectionStart: b.section !== null || !blocks.length }; blocks.push(open); }
     open.bars.push(b);
     if (mb.repeatCount > 1) { open.times = mb.repeatCount; open = null; }
   });
@@ -213,7 +215,7 @@ function gpToParts(score, ti, opt) {
   progs.forEach((x, i) => {
     const names = [...new Set(x.names.map(clean).filter(Boolean).map(base))];
     let nm;
-    if (!labelled) nm = 'Riff ' + String.fromCharCode(65 + (letter++ % 26));
+    if (!labelled) { const k = letter++; nm = 'Riff ' + (k < 26 ? '' : String.fromCharCode(64 + Math.floor(k / 26))) + String.fromCharCode(65 + (k % 26)); }   // A…Z, AA, AB…
     else if (!names.length) nm = i === 0 ? 'Intro' : 'Part ' + (i + 1);
     else { nm = names.join(' / '); if (nm.length > 36) nm = names[0] + ' +' + (names.length - 1); }
     used[nm] = (used[nm] || 0) + 1;
