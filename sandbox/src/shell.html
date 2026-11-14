@@ -1845,7 +1845,7 @@ footer { display: none; }
   $('prog-right').addEventListener('click', () => move(1));
   $('prog-new').addEventListener('click', () => {
     if (pl) stopProg();
-    const p = P(); p.chords = []; p.name = ''; progSel = -1; $('prog-name').value = '';
+    const p = P(); p.chords = []; p.name = ''; delete p.id; delete p.folder; progSel = -1; $('prog-name').value = '';
     progMsg('Started a new progression. Saved ones are still below.'); save(); renderProg();
   });
   $('prog-loop').addEventListener('change', e => { P().loop = e.target.checked; save(); });
@@ -1859,15 +1859,26 @@ footer { display: none; }
   $('prog-meter').addEventListener('change', e => { setMeter(e.target.value); save(); renderProg();
   });
   document.querySelectorAll('#seg-sub button').forEach(b => b.addEventListener('click', () => { setSub(Number(b.dataset.v)); save(); renderProg(); }));
+  // Save updates the saved progression that's open in the editor (same name); a new name, or a progression that
+  // isn't saved yet, makes a new one. Names are never matched across folders, so saving "Verse" can't overwrite
+  // another song's Verse; a clash in the same folder becomes "Verse (2)".
   function saveProg() {
     const p = P();
     if (!p.chords.length) { progMsg('Add some chords before saving.'); return; }
-    let name = $('prog-name').value.trim() || 'Progression ' + (st.progs.length + 1);
-    p.name = name;
-    const entry = clone(p);
-    const i = st.progs.findIndex(q => q.name.toLowerCase() === name.toLowerCase());
-    if (i >= 0) { entry.id = st.progs[i].id; entry.folder = st.progs[i].folder; st.progs[i] = entry; progMsg(`Updated “${name}”.`); }
-    else { entry.id = newId(); entry.folder = st.progFolder !== 'all' ? st.progFolder : ''; st.progs.unshift(entry); progMsg(`Saved “${name}”` + (entry.folder ? ` in ${entry.folder}.` : '.')); }
+    const typed = $('prog-name').value.trim();
+    const loaded = p.id ? st.progs.find(q => q.id === p.id) : null;
+    let name = typed || (loaded ? loaded.name : 'Progression ' + (st.progs.length + 1)), savedId;
+    if (loaded && name.toLowerCase() === loaded.name.toLowerCase()) {
+      const entry = clone(p); entry.name = name; entry.id = savedId = loaded.id; entry.folder = loaded.folder || '';
+      st.progs[st.progs.indexOf(loaded)] = entry; progMsg(`Updated “${name}”.`);
+    } else {
+      const folder = st.progFolder !== 'all' ? st.progFolder : loaded ? loaded.folder || '' : '';
+      const taken = n => st.progs.some(q => (q.folder || '') === folder && q.name.toLowerCase() === n.toLowerCase());
+      const base = name; for (let k = 2; taken(name); k++) name = `${base} (${k})`;
+      const entry = clone(p); entry.name = name; entry.id = savedId = newId(); entry.folder = folder;
+      st.progs.unshift(entry); progMsg(`Saved “${name}”` + (folder ? ` in ${folder}.` : '.'));
+    }
+    p.name = name; p.id = savedId; p.folder = st.progs.find(q => q.id === savedId).folder;
     $('prog-name').value = name; save(); renderProgs();
   }
   $('prog-save').addEventListener('click', saveProg);
