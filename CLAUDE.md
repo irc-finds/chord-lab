@@ -103,6 +103,19 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   "452Hz", the import offers "Set A = 452 Hz".
   Tempo: each bar's tempo comes from `masterBar.tempoAutomations`; a change of ≥ 3 bpm from the start of the current block opens a
   new block (smaller drifts are ignored so a rit doesn't splinter). Riff names go A…Z, then AA, AB…
+- Bass tones (main and sandbox): `BASS_RIGS` in `src/shell.html` / `sandbox/src/shell.html` (ids start `bass-`: finger, pick, vintage, bright,
+  drive, fuzz, dream), listed under "Bass tones" in the Rig menu (first when the instrument is a bass). They use the same pedals;
+  `isBass()` (a bass rig, `st.fx.bass`, or the bass instrument) switches a bass voicing in `applyFx` (guitar low cuts opened,
+  bass cab, mid lean) and in `pluck` (bass string: `bt` 0 finger .. 1 pick, in the sandbox `bt = 1 - pick`; upper harmonics die
+  away fast; soft clipping adds harmonics so small speakers can play it). Songs: bass tracks now get their own rig/tone and
+  chain like guitar tracks (`hasRig`, `rigsFor`, `BASS_PROGRAM_RIG`, a "Set every bass track to" menu); gain 0.26. Measured
+  with the demo bass solo through the limiter: old bass RMS 0.037 with 15% of energy above 150 Hz; new tones RMS 0.14-0.17 and
+  ~14-55% above 150 Hz (guitar demo track RMS 0.09). Saved sounds in the sandbox also store `bass` and `bt`.
+- Lyrics (Songs, main and sandbox): `song.lyrics` = [{bi, start, t, c}] read from the file's beat lyrics (the track with the most) or typed in
+  the "Lyrics…" dialog (`#lyr-dlg`; `applyLyricsText` splits on spaces and dashes, `_` = note with no word, `[…]` ignored, one syllable per
+  non-rest, non-tied note of the chosen track, `lyrSlots`). What was typed is kept as `song.lyricsSrc` {text, track} in the song's saved
+  settings (`snapshot().lyrics`) and lined up again on load. `barLayout` gives each word its own column and `tabRows` draws them in a row
+  under the rhythm marks (class `lyr`, also in the PDF).
 - Saving a progression (both apps, `saveProg`): Save updates the saved progression open in the editor (`st.prog.id`) when the
   name is unchanged; a new name or an unsaved progression makes a new one in the open folder. Names are never matched across
   folders (so a new "Riff A" can't overwrite an imported song's Riff A); a clash in the same folder becomes "Name (2)". New clears the id.

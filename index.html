@@ -1038,7 +1038,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
   });
   const DEFAULT_ORDER = ['comp', 'gate', 'fuzz', 'drive', 'dist', 'chorus', 'amp', 'delay', 'reverb'];
   function freshFx(reverbOn) {
-    return { mode: 'acoustic', rig: 'acoustic', order: DEFAULT_ORDER.slice(), p: {
+    return { mode: 'acoustic', rig: 'acoustic', order: DEFAULT_ORDER.slice(), bass: false, bt: 0.5, p: {
       comp: { on: false, sustain: 0.5, level: 0.5 },
       fuzz: { on: false, gain: 0.75, gate: 0.4, stab: 0.5, tone: 0.55, level: 0.5 },
       drive: { on: false, drive: 0.4, tone: 0.5, level: 0.5 },
@@ -2393,6 +2393,21 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     ['classicmetal', 'Classic metal (scooped mids)', 'electric', { gate: { on: true, threshold: 0.3, release: 0.2 }, dist: { on: true, gain: 0.65, tight: 0.5, low: 0.65, mid: 0.25, high: 0.65, level: 0.5 }, amp: { on: true, gain: 0.15, bass: 0.55, mid: 0.45, treble: 0.55, volume: 0.6 }, reverb: { on: true, size: 0.15, mix: 0.12 } }],
     ['wall', 'Wall of fuzz (shoegaze)', 'electric', { fuzz: { on: true, gain: 0.9, gate: 0.08, stab: 0.5, tone: 0.4, level: 0.5 }, chorus: { on: true, rate: 0.3, depth: 0.6, mix: 0.5 }, amp: { on: true, gain: 0.3, bass: 0.55, mid: 0.4, treble: 0.4, volume: 0.6 }, delay: { on: true, time: 0.35, feedback: 0.5, mix: 0.3 }, reverb: { on: true, size: 0.85, mix: 0.6 } }]
   ];
+  // Bass tones. They use the same pedals, but a bass voicing: the guitar low cuts and the 4x12 speaker curve are opened up
+  // (see applyFx), and the string itself is modelled as a bass (pluck). bt: 0 = round finger / flatwound … 1 = bright pick / roundwound.
+  const BASS_RIGS = [
+    ['bass-finger', 'Bass: Finger (warm and round)', 'electric', { bt: 0.2, pick: 0.8, comp: { on: true, sustain: 0.45, level: 0.5 }, amp: { on: true, gain: 0.2, bass: 0.55, mid: 0.5, treble: 0.4, volume: 0.7 } }],
+    ['bass-pick', 'Bass: Pick (punchy)', 'electric', { bt: 0.8, pick: 0.2, comp: { on: true, sustain: 0.55, level: 0.5 }, amp: { on: true, gain: 0.3, bass: 0.5, mid: 0.4, treble: 0.38, volume: 0.7 } }],
+    ['bass-vintage', 'Bass: Vintage flat (thumpy, Motown)', 'electric', { bt: 0.05, pick: 0.95, comp: { on: true, sustain: 0.5, level: 0.5 }, amp: { on: true, gain: 0.25, bass: 0.6, mid: 0.48, treble: 0.25, volume: 0.7 } }],
+    ['bass-bright', 'Bass: Bright and scooped (snappy)', 'electric', { bt: 1, pick: 0.05, comp: { on: true, sustain: 0.6, level: 0.5 }, amp: { on: true, gain: 0.2, bass: 0.62, mid: 0.15, treble: 0.55, volume: 0.7 } }],
+    ['bass-drive', 'Bass: Driven (rock grit)', 'electric', { bt: 0.65, pick: 0.35, comp: { on: true, sustain: 0.5, level: 0.5 }, drive: { on: true, drive: 0.5, tone: 0.5, level: 0.55 }, amp: { on: true, gain: 0.3, bass: 0.55, mid: 0.35, treble: 0.4, volume: 0.65 } }],
+    ['bass-fuzz', 'Bass: Fuzz (thick, Deftones / shoegaze)', 'electric', { bt: 0.55, pick: 0.45, comp: { on: true, sustain: 0.4, level: 0.5 }, fuzz: { on: true, gain: 0.8, gate: 0.05, stab: 0.5, tone: 0.45, level: 0.6 }, amp: { on: true, gain: 0.15, bass: 0.6, mid: 0.4, treble: 0.4, volume: 0.6 } }],
+    ['bass-dream', 'Bass: Dreamy (chorus and room)', 'electric', { bt: 0.3, pick: 0.7, comp: { on: true, sustain: 0.5, level: 0.5 }, chorus: { on: true, rate: 0.25, depth: 0.5, mix: 0.4 }, amp: { on: true, gain: 0.15, bass: 0.55, mid: 0.45, treble: 0.5, volume: 0.7 }, delay: { on: true, time: 0.4, feedback: 0.3, mix: 0.18 }, reverb: { on: true, size: 0.5, mix: 0.3 } }]
+  ];
+  RIGS.push(...BASS_RIGS);
+  const isBassRig = id => String(id).startsWith('bass-');
+  // is the sound being made a bass? (a bass track in Songs, a bass rig, or the bass instrument in the Analyzer)
+  function isBass() { return !!(st.fx && st.fx.bass) || (typeof st.inst === 'string' && st.inst.charAt(0) === 'b'); }
   function soundChanged() { st.fx.rig = null; $('rig').value = ''; save(); }
   function movePedal(id, d) {
     const o = st.fx.order, i = o.indexOf(id), j = i + d;
@@ -2406,7 +2421,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
   function renderChainLine() {
     const on = st.fx.order.filter(id => st.fx.p[id].on).map(id => PEDALS.find(x => x.id === id).name);
     const el = $('chain-line'); el.innerHTML = '';
-    const parts = [st.fx.mode === 'electric' ? 'Electric guitar' : 'Acoustic guitar', ...on, 'speakers'];
+    const parts = [st.fx.mode === 'electric' ? (isBass() ? 'Electric bass' : 'Electric guitar') : (isBass() ? 'Acoustic bass' : 'Acoustic guitar'), ...on, 'speakers'];
     el.append('What you hear: ');
     parts.forEach((t, i) => { const b = document.createElement('b'); b.textContent = t; el.append(b); if (i < parts.length - 1) el.append(' → '); });
     $('order-reset').hidden = st.fx.order.join() === DEFAULT_ORDER.join();
@@ -2416,7 +2431,9 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     syncSeg('seg-tone', st.fx.mode);
     const rig = $('rig'); rig.innerHTML = '';
     const cu = document.createElement('option'); cu.value = ''; cu.textContent = 'Custom'; rig.appendChild(cu);
-    RIGS.forEach(([id, name]) => { const o = document.createElement('option'); o.value = id; o.textContent = name; rig.appendChild(o); });
+    const gG = document.createElement('optgroup'), gB = document.createElement('optgroup'); gG.label = 'Guitar tones'; gB.label = 'Bass tones';
+    RIGS.forEach(([id, name]) => (isBassRig(id) ? gB : gG).appendChild(new Option(name.replace(/^Bass: /, ''), id)));
+    if (isBass()) rig.append(gB, gG); else rig.append(gG, gB);
     rig.value = st.fx.rig || '';
     renderChainLine();
     const box = $('pedals'); box.innerHTML = '';
@@ -2472,13 +2489,14 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     const r = RIGS.find(x => x[0] === e.target.value); if (!r) return;
     const [id, , mode, spec] = r;
     for (const k in st.fx.p) { st.fx.p[k].on = false; if (spec[k]) Object.assign(st.fx.p[k], spec[k]); }
-    st.fx.mode = mode; st.fx.rig = id; st.fx.order = DEFAULT_ORDER.slice();
+    st.fx.mode = mode; st.fx.rig = id; st.fx.order = DEFAULT_ORDER.slice(); st.fx.bass = isBassRig(id); st.fx.bt = spec.bt ?? 0.5;
     $('haze').checked = st.fx.p.reverb.on;
     wireFx(); applyFx(); save(); renderPedals();
   });
 
   /* ---------- refresh ---------- */
   function refresh() {
+    if (refresh.wasBass !== isBass()) { refresh.wasBass = isBass(); if (fx) applyFx(); renderPedals(); }
     analyzeNow();
     syncSeg('seg-mode', st.mode); syncSeg('seg-spell', st.spell); syncSeg('seg-play', st.play); syncSeg('seg-frets', st.maxFret); syncSeg('seg-inst', st.inst);
     $('speed-strum').hidden = !(st.play === 'down' || st.play === 'up');
@@ -2676,6 +2694,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     if (!fx || !ctx) return;
     const P = st.fx.p, S = fx.stages, t = ctx.currentTime;
     const set = (param, v) => param.setTargetAtTime(v, t, 0.02);
+    const bs = isBass();
     // compressor
     set(S.comp.node.threshold, -8 - 42 * P.comp.sustain); set(S.comp.node.ratio, 3 + 9 * P.comp.sustain);
     set(S.comp.out.gain, (0.3 + 0.9 * P.comp.level) * (1 + 1.2 * P.comp.sustain));
@@ -2694,7 +2713,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     set(S.drive.tone.frequency, expMap(P.drive.tone, 1400, 9000));
     set(S.drive.lvl.gain, 0.12 + 0.5 * P.drive.level);
     // distortion
-    set(S.dist.tight.frequency, 40 * Math.pow(10, P.dist.tight));
+    set(S.dist.tight.frequency, (bs ? 20 : 40) * Math.pow(10, P.dist.tight));
     set(S.dist.pre.gain, 2 + 220 * Math.pow(P.dist.gain, 2));
     S.dist.ws1.curve = curve('ds1', x => Math.tanh(3 * x) / Math.tanh(3));
     S.dist.ws2.curve = curve('ds2', x => { const y = x + 0.08; return (y > 0 ? Math.tanh(4 * y) : Math.tanh(3 * y)) - Math.tanh(0.32); });
@@ -2710,9 +2729,9 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     set(S.chorus.depth.gain, 0.0004 + 0.006 * P.chorus.depth);
     set(S.chorus.wet.gain, P.chorus.mix); set(S.chorus.dry.gain, 1 - 0.4 * P.chorus.mix);
     // amp
-    set(S.amp.pre.gain, 1 + 45 * Math.pow(P.amp.gain, 2));
-    S.amp.ws.curve = curve('amp', x => (Math.tanh(1.6 * (x + 0.12)) - Math.tanh(1.6 * 0.12)) / Math.tanh(1.6));
-    set(S.amp.bass.gain, dB(P.amp.bass)); set(S.amp.mid.gain, dB(P.amp.mid)); set(S.amp.treb.gain, dB(P.amp.treble));
+    set(S.amp.pre.gain, (bs ? 2.4 : 1) + 45 * Math.pow(P.amp.gain, 2));
+    S.amp.ws.curve = bs ? curve('ampb', x => (Math.tanh(1.4 * (x + 0.1)) - Math.tanh(0.14)) / Math.tanh(1.4)) : curve('amp', x => (Math.tanh(1.6 * (x + 0.12)) - Math.tanh(1.6 * 0.12)) / Math.tanh(1.6));
+    set(S.amp.bass.gain, dB(P.amp.bass) - (bs ? 5 : 0)); set(S.amp.mid.gain, dB(P.amp.mid) + (bs ? 7 : 0)); set(S.amp.treb.gain, dB(P.amp.treble) + (bs ? 2 : 0));   // a bass amp leans on its mids so the note carries on small speakers
     set(S.amp.vol.gain, 0.75 * P.amp.volume / (1 + 2.5 * P.amp.gain));
     // delay
     set(S.delay.dl.delayTime, 0.06 + 1.14 * P.delay.time);
@@ -2721,12 +2740,20 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     const size = 0.6 + 7.4 * P.reverb.size;
     if (Math.abs(size - S.reverb.size) > 0.05) { S.reverb.conv.buffer = makeIR(size); S.reverb.size = size; }
     set(S.reverb.wet.gain, P.reverb.mix * (2.2 / Math.sqrt(size * 2.2))); set(S.reverb.dry.gain, 1 - 0.35 * P.reverb.mix);
+    // bass voicing: the strings carry their lows, so open up the guitar-style low cuts and swap the 4x12 for a bass cab
+    set(fx.pickup.peak.frequency, bs ? 1800 : 3600); set(fx.pickup.peak.gain, bs ? 3 : 5); set(fx.pickup.roll.frequency, bs ? 5200 : 6500);
+    set(S.fuzz.hp.frequency, bs ? 45 : 110); set(S.drive.hp.frequency, bs ? 50 : 160);
+    set(S.amp.bass.frequency, bs ? 80 : 110); set(S.amp.mid.frequency, bs ? 800 : 650); set(S.amp.treb.frequency, bs ? 2500 : 3200);
+    set(S.amp.cabHp.frequency, bs ? 32 : 80); set(S.amp.cabRes.frequency, bs ? 85 : 110); set(S.amp.cabRes.gain, bs ? 2 : 3);
+    set(S.amp.cabHonk.frequency, bs ? 1000 : 1900); set(S.amp.cabHonk.gain, bs ? 2 : 3);
+    set(S.amp.cabLp.frequency, bs ? 4200 : 5000); set(S.amp.cabLp2.frequency, bs ? 6000 : 7000);
   }
   // tone: 0 = bright thin string, higher = darker wound string (more smoothing of the pick noise)
   function pluck(midi, tone) {
     tone = tone ?? 2;
     const elec = st.fx.mode === 'electric';
-    const key = midi + '|' + st.ring + '|' + tone + '|' + (elec ? 'e' : 'a');
+    const bass = isBass(), bt = bass ? (typeof st.fx.pick === 'number' ? 1 - st.fx.pick : (st.fx.bt ?? 0.5)) : 0;   // bass string: 0 = finger, 1 = pick
+    const key = midi + '|' + st.ring + '|' + tone + '|' + (elec ? 'e' : 'a') + (bass ? 'B' + bt.toFixed(2) : '');
     if (cache.has(key)) return cache.get(key);
     const sr = ctx.sampleRate, f = 440 * Math.pow(2, (midi - 69) / 12);
     const N = Math.max(2, Math.floor(sr / f - 0.5));
@@ -2736,11 +2763,11 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     const ring = new Float32Array(N);
     // excitation: the string's shape when plucked (a triangle peaking at the pick point) plus a little noise,
     // so every note has a solid fundamental. Thin strings are picked nearer the bridge = brighter.
-    const pp = elec ? 0.09 + tone * 0.012 : 0.12 + tone * 0.025;
+    const pp = bass ? 0.27 - bt * 0.15 : elec ? 0.09 + tone * 0.012 : 0.12 + tone * 0.025;
     let mean = 0;
-    for (let i = 0; i < N; i++) { const x = i / N; ring[i] = (x < pp ? x / pp : (1 - x) / (1 - pp)) + (Math.random() * 2 - 1) * 0.3; mean += ring[i]; }
+    for (let i = 0; i < N; i++) { const x = i / N; ring[i] = (x < pp ? x / pp : (1 - x) / (1 - pp)) + (Math.random() * 2 - 1) * (bass ? 0.06 + 0.3 * bt : 0.3); mean += ring[i]; }
     mean /= N; for (let i = 0; i < N; i++) ring[i] -= mean;
-    const smooth = elec ? Math.ceil(tone / 2) : tone;
+    const smooth = bass ? 1 : elec ? Math.ceil(tone / 2) : tone;
     for (let k = 0; k < smooth; k++) for (let i = 0; i < N; i++) ring[i] = (ring[i] + ring[(i + 1) % N]) / 2;
     const g = Math.pow(0.03, 1 / (f * ringSec));
     let idx = 0, peak = 0;
@@ -2751,10 +2778,17 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     }
     // electric: a magnetic pickup "hears" the string at one spot, which carves out some overtones (that's the
     // hollow, snappy electric character). Modelled as the string minus a slightly delayed copy of itself.
-    if (elec) { const P = Math.max(1, Math.round(N * 0.16)); for (let i = len - 1; i >= P; i--) d[i] -= 0.9 * d[i - P]; }
+    if (elec) { const P = Math.max(1, Math.round(N * (bass ? 0.12 : 0.16))), cm = bass ? 0.55 : 0.9; for (let i = len - 1; i >= P; i--) d[i] -= cm * d[i - P]; }
+    // a real bass string loses its upper harmonics within a fraction of a second (finger: fast, pick: slower), which is what makes it
+    // sound like a bass and not a synth pad: split the note at a cutoff above the fundamental and let the top half die away
+    if (bass) {
+      const fc = Math.min(2400, Math.max(450, f * 12)), al = 1 - Math.exp(-2 * Math.PI * fc / sr), hs = Math.exp(-1 / (sr * (0.25 + 1.0 * bt)));
+      let lp = 0, h = 1; for (let i = 0; i < len; i++) { lp += al * (d[i] - lp); d[i] = lp + (d[i] - lp) * h; h *= hs; }
+    }
     for (let i = 0; i < len; i++) if (Math.abs(d[i]) > peak) peak = Math.abs(d[i]);
+    const sat = 1.8 + 0.7 * bt, satN = Math.tanh(sat);   // bass only: soft clipping adds the harmonics that let a small speaker play the note, most at the attack
     const fade = Math.floor(sr * 0.25);
-    for (let i = 0; i < len; i++) { d[i] /= (peak || 1); if (i > len - fade) d[i] *= (len - i) / fade; }
+    for (let i = 0; i < len; i++) { d[i] /= (peak || 1); if (bass) d[i] = Math.tanh(sat * d[i]) / satN; if (i > len - fade) d[i] *= (len - i) / fade; }
     const item = { buf, rate: f * (N + 0.5) / sr };
     if (cache.size > 160) cache.clear();
     cache.set(key, item);
