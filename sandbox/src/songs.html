@@ -117,6 +117,14 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .neck-wrap svg { display: block; }
 .tab { display: grid; gap: 4px; min-width: 0; }
 .tab svg { display: block; width: 100%; height: auto; overflow: visible; }
+.tab .lyr { font-family: var(--font-body); font-size: 10.5px; fill: var(--ink); opacity: 0.85; pointer-events: none; }
+.sheet-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.lyr-dlg { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); padding: 0; width: min(560px, calc(100vw - 24px)); }
+.lyr-dlg::backdrop { background: rgba(0, 0, 0, 0.55); }
+.lyr-box { display: grid; gap: 10px; padding: 16px; }
+.lyr-top { display: flex; justify-content: space-between; align-items: center; }
+.lyr-box textarea { width: 100%; box-sizing: border-box; min-height: 220px; resize: vertical; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; font-size: 14px; line-height: 1.5; }
+.lyr-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .tab .ln { stroke: var(--string); stroke-width: 1; }
 .tab .bl { stroke: var(--muted); stroke-width: 1.2; }
 .tab .bl.thick { stroke: var(--ink); stroke-width: 3; }
@@ -212,11 +220,22 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 
 <!--APPBAR_NAV-->
 
+<dialog id="lyr-dlg" class="lyr-dlg" aria-labelledby="lyr-h">
+  <div class="lyr-box">
+    <div class="lyr-top"><h2 id="lyr-h">Lyrics</h2><button class="btn" type="button" id="lyr-x" aria-label="Close">×</button></div>
+    <label class="eyebrow" for="lyr-trk">Put the words on the notes of</label>
+    <select id="lyr-trk"></select>
+    <textarea id="lyr-txt" rows="12" spellcheck="false" aria-label="Lyrics" placeholder="Paste the lyrics here. One word or syllable goes on each note, in order."></textarea>
+    <div class="hint">Split a word with a dash (a-gain) so each part lands on its own note. Use _ for a note with no word. Notes in [brackets] are ignored.</div>
+    <div class="lyr-row"><button class="btn primary" type="button" id="lyr-go">Auto-align</button><button class="btn" type="button" id="lyr-clean">Cleanup annotations</button><button class="btn" type="button" id="lyr-file">Use the file’s lyrics</button><button class="btn" type="button" id="lyr-clear">Clear</button></div>
+    <div class="hint" id="lyr-msg" role="status"></div>
+  </div>
+</dialog>
 <main class="app">
   <section class="sheet" aria-labelledby="sheet-h">
     <div class="sheet-head">
       <div><h2 id="sheet-h">Tab</h2><div class="hint" id="sheet-sub"></div></div>
-      <label class="toggle"><input type="checkbox" id="follow" checked> Follow the music</label>
+      <div class="sheet-tools"><button class="btn" type="button" id="lyr-btn">Lyrics…</button><label class="toggle"><input type="checkbox" id="follow" checked> Follow the music</label></div>
     </div>
     <div class="chordmap" id="chordmap">
       <div class="cm-head">
@@ -255,7 +274,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     <section class="panel" aria-labelledby="tracks-h">
       <h2 id="tracks-h">Tracks</h2>
       <div class="tracks" id="tracks"></div>
-      <div class="hint">Tap a track to show its tab. M mutes it, S plays it alone. Guitar tracks go through the rig below; bass, drums and the rest play without pedals.</div>
+      <div class="hint">Tap a track to show its tab. M mutes it, S plays it alone. Guitar and bass tracks go through their own rig (tone) in the list; drums and the rest play without pedals.</div>
     </section>
 
     <section class="panel" aria-labelledby="tun-h">
@@ -280,7 +299,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       <h2 id="snd-h">Sound</h2>
       <label class="eyebrow" for="rig">Set every guitar track to</label>
       <select id="rig"></select>
-      <div class="hint">Each guitar track has its own rig in the track list above, so a clean verse part and a distorted chorus part can sound different. Rigs start from the guitar type in the file (clean, overdriven, distortion, acoustic). These are Chord Lab's rigs, including djent and open-tuning metal.</div>
+      <label class="eyebrow" for="rig-bass">Set every bass track to</label>
+      <select id="rig-bass"></select>
+      <div class="hint">Each guitar and bass track has its own rig in the track list above, so a clean verse part and a distorted chorus part can sound different. Rigs start from the guitar type in the file (clean, overdriven, distortion, acoustic). These are Chord Lab's rigs, including djent and open-tuning metal. Bass tracks have their own tones: finger, pick, vintage, bright, driven, fuzz and dreamy.</div>
     </section>
 
     <section class="panel" aria-labelledby="pdf-h">
@@ -375,7 +396,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   try {
     const cl = JSON.parse(localStorage.getItem('chord-lab-sbx') || 'null');
     (cl && Array.isArray(cl.soundPresets) ? cl.soundPresets : []).forEach(x => {
-      if (x && x.id && x.name && x.p) RIGS.push(['u:' + x.id, 'My sound: ' + x.name, x.mode === 'electric' ? 'electric' : 'acoustic', Object.assign({}, x.p, { pick: x.pick ?? 0.35 }), x.order]);
+      if (x && x.id && x.name && x.p) RIGS.push(['u:' + x.id, 'My sound: ' + x.name, x.mode === 'electric' ? 'electric' : 'acoustic', Object.assign({}, x.p, { pick: x.pick ?? 0.35, bass: !!x.bass, bt: x.bt ?? 0.5 }), x.order]);
     });
   } catch (e) {}
   const st = { fx: freshFx(false), ring: 2.6, a4: 440 };
@@ -548,7 +569,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   }
   function snapshot() {
     return { tracks: song.tracks.map(t => ({ tuning: t.tuning ? t.tuning.slice() : null, mode: t.mode, transpose: t.transpose, vol: t.vol, mute: t.mute, solo: t.solo,
-      rig: t.rig || null, rigChanges: (t.rigChanges || []).map(c => ({ bar: c.bar, rig: c.rig })) })) };
+      rig: t.rig || null, rigChanges: (t.rigChanges || []).map(c => ({ bar: c.bar, rig: c.rig })) })), lyrics: song.lyricsSrc || null };
   }
   let saveT = 0;
   function saveSettingsSoon() {
@@ -606,7 +627,15 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       if (an.isTieDestination && an.tieOrigin) note.tie = map.get(an.tieOrigin) || null;
       if (an.isHammerPullDestination && an.hammerPullOrigin) note.hOrig = map.get(an.hammerPullOrigin) || null;
     }
-    return { title: (score.title || '').trim(), artist: (score.artist || '').trim(), tempo: score.tempo || 120, bars, tracks };
+    const found = [], per = new Array(score.tracks.length).fill(0);
+    score.tracks.forEach((t, ti) => t.staves.forEach(stf => stf.bars.forEach((bar, bi) => bar.voices.forEach(v => v.beats.forEach(b => {
+      if (b.isEmpty || bi >= bars.length) return;
+      const raw = (b.lyrics || []).map(x => String(x == null ? '' : x).trim()).find(Boolean); if (!raw || /^-+$/.test(raw)) return;
+      found.push({ bi, start: b.playbackStart, t: raw.replace(/-+$/, ''), c: /-$/.test(raw), ti }); per[ti]++;
+    })))));
+    const lyrTrack = per.some(n => n > 0) ? per.indexOf(Math.max(...per)) : -1;
+    return { title: (score.title || '').trim(), artist: (score.artist || '').trim(), tempo: score.tempo || 120, bars, tracks,
+      lyrics: found.filter(l => l.ti === lyrTrack).map(l => ({ bi: l.bi, start: l.start, t: l.t, c: l.c })), lyrTrack };
   }
   function openBytes(bytes, name, rec) {
     const err = $('open-err'); err.hidden = true;
@@ -686,6 +715,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   function loadSong(s, from, saved) {
     stopPlay(); pos = 0;
     song = s;
+    song.fileLyrics = (s.lyrics || []).slice(); song.lyricsSrc = null; setLyrics(song.fileLyrics);
+    if (saved && saved.lyrics && typeof saved.lyrics.text === 'string' && song.tracks[saved.lyrics.track]) applyLyricsText(saved.lyrics.text, saved.lyrics.track, true);
     // settings kept from the last time this song was open
     const sv = saved && saved.tracks && saved.tracks.length === song.tracks.length ? saved.tracks : null;
     if (sv) song.tracks.forEach((t, i) => {
@@ -699,10 +730,10 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     view = song.tracks.findIndex(t => t.tuning && t.kind === 'guitar');
     if (view < 0) view = song.tracks.findIndex(t => t.tuning);
     song.tracks.forEach(retune);
-    song.tracks.forEach(tr => { tr.post = null; tr.chains = {}; tr.fxStates = {}; tr.rigChanges = []; if (tr.kind === 'guitar') setTrackRig(tr, PROGRAM_RIG[tr.program] || 'crunch'); });
+    song.tracks.forEach(tr => { tr.post = null; tr.chains = {}; tr.fxStates = {}; tr.rigChanges = []; if (hasRig(tr)) setTrackRig(tr, defaultRig(tr)); });
     if (sv) song.tracks.forEach((tr, i) => {
       const v = sv[i] || {}, ok = id => RIGS.some(x => x[0] === id);
-      if (tr.kind !== 'guitar' || !ok(v.rig)) return;
+      if (!hasRig(tr) || !ok(v.rig) || rigIsBass(RIGS.find(x => x[0] === v.rig)) !== (tr.kind === 'bass')) return;
       setTrackRig(tr, v.rig);
       tr.rigChanges = (v.rigChanges || []).filter(c => ok(c.rig) && c.bar > 0 && c.bar < song.bars.length).map(c => ({ bar: c.bar, rig: c.rig })).sort((a, b) => a.bar - b.bar);
       tr.rigChanges.forEach(c => stateFor(tr, c.rig));
@@ -905,6 +936,12 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   }
   // A rig is Chord Lab's pedal settings. The pedal code works on one chain at a time (the globals fx and st.fx),
   // so each guitar track keeps its own pair and swaps it in whenever its chain is built or changed.
+  const hasRig = tr => tr.kind === 'guitar' || tr.kind === 'bass';
+  const rigIsBass = r => isBassRig(r[0]) || !!(r[3] && r[3].bass);
+  const rigsFor = tr => RIGS.filter(r => rigIsBass(r) === (tr.kind === 'bass'));
+  // bass programs in the file (32 acoustic, 33 finger, 34 pick, 35 fretless, 36-37 slap, 38-39 synth)
+  const BASS_PROGRAM_RIG = { 32: 'bass-vintage', 33: 'bass-finger', 34: 'bass-pick', 35: 'bass-vintage', 36: 'bass-bright', 37: 'bass-bright', 38: 'bass-drive', 39: 'bass-drive' };
+  const defaultRig = tr => tr.kind === 'bass' ? (BASS_PROGRAM_RIG[tr.program] || 'bass-finger') : (PROGRAM_RIG[tr.program] || 'crunch');
   const PROGRAM_RIG = { 24: 'acoustic', 25: 'acoustic', 26: 'clean', 27: 'clean', 28: 'clean', 29: 'crunch', 30: 'classicmetal', 31: 'clean' };
   function rigState(id) {
     const r = RIGS.find(x => x[0] === id) || RIGS.find(x => x[0] === 'crunch');
@@ -912,7 +949,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     for (const k in f.p) { f.p[k].on = false; if (r[3][k]) Object.assign(f.p[k], r[3][k]); }
     if (Array.isArray(r[4]) && r[4].length === DEFAULT_ORDER.length) f.order = r[4].slice();
     f.pick = r[3].pick ?? 0.35;
-    f.mode = r[2]; f.rig = r[0]; return f;
+    f.mode = r[2]; f.rig = r[0]; f.bass = rigIsBass(r); f.bt = r[3].bt ?? 0.5; return f;
   }
   // Each guitar track: a volume/mute gain (tr.post) and one pedal chain per rig it uses, all feeding that gain.
   // Notes go into the chain of the rig that's active at their bar, so a rig change is like stepping on a pedal:
@@ -943,7 +980,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     if (!song) return;
     const now = ctx.currentTime;
     song.tracks.forEach(tr => {
-      if (tr.kind !== 'guitar') return;
+      if (!hasRig(tr)) return;
       const cur = rigAt(tr, bi);
       Object.entries(tr.chains || {}).forEach(([id, c]) => { if (id !== cur && !c.asleep && now > c.busyUntil) sleepChain(tr, c); });
     });
@@ -964,7 +1001,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     }
     trackGain = song.tracks.map(tr => {
       const g = ctx.createGain(); tr.post = g; tr.chains = {};
-      if (tr.kind === 'guitar') { g.connect(master); rigsOf(tr).forEach(id => ensureChain(tr, id)); }
+      if (hasRig(tr)) { g.connect(master); rigsOf(tr).forEach(id => ensureChain(tr, id)); }
       else g.connect(dryBus);
       return g;
     });
@@ -1043,7 +1080,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   function fire(ev, when) {
     const tr = song.tracks[ev.tr], post = trackGain[ev.tr]; if (!post) return;
     let dest = post, rigFx = null;
-    if (ev.kind === 'guitar') {
+    if (ev.kind === 'guitar' || ev.kind === 'bass') {
       const id = rigAt(tr, ev.bi); let ch = ensureChain(tr, id);
       if (ch) { if (ch.asleep) ch = wakeChain(tr, id); dest = ch.input; ch.busyUntil = Math.max(ch.busyUntil, when + ev.d / speed + 8); }   // 8 s for echoes and reverb to ring out
       rigFx = tr.fxStates[id];
@@ -1054,9 +1091,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     if (ev.kind === 'drums') { drumTo(ev.p, when, vel, dest); return; }
     if (ev.kind === 'pad') { padTo(ev.p, when, d, 0.07 * vel, dest); return; }
     const tone = toneFor(ev);
-    const gain = (ev.kind === 'bass' ? 0.34 : ev.kind === 'keys' ? 0.17 : 0.2) * vel;
+    const gain = (ev.kind === 'bass' ? 0.26 : ev.kind === 'keys' ? 0.17 : 0.2) * vel;
     const keep = st.fx;
-    st.fx = ev.kind === 'guitar' ? rigFx : Object.assign({}, keep, { mode: ev.kind === 'bass' ? 'electric' : 'acoustic' });
+    st.fx = rigFx ? rigFx : Object.assign({}, keep, { mode: ev.kind === 'bass' ? 'electric' : 'acoustic' });
     let v; try { v = pluckTo(ev.p, when, gain, tone, dest); } finally { st.fx = keep; }
     if (n.bend) {   // bends: slide the string's pitch along the bend curve
       const r = v.rate; v.src.playbackRate.setValueAtTime(r * Math.pow(2, n.bend[0][1] / 12), when);
@@ -1071,8 +1108,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   function warm(ev) {
     if (ev.kind === 'drums' || ev.kind === 'pad') return;
     const tr = song.tracks[ev.tr];
-    const mode = ev.kind === 'guitar' ? stateFor(tr, rigAt(tr, ev.bi)).mode : ev.kind === 'bass' ? 'electric' : 'acoustic';
-    const keep = st.fx; st.fx = Object.assign({}, keep, { mode });
+    const keep = st.fx; st.fx = ev.kind === 'guitar' || ev.kind === 'bass' ? stateFor(tr, rigAt(tr, ev.bi)) : Object.assign({}, keep, { mode: 'acoustic' });
     try { pluck(ev.p, toneFor(ev)); } finally { st.fx = keep; }
   }
   function hush() {
@@ -1223,10 +1259,10 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       vol.setAttribute('aria-label', 'Volume of ' + tr.name);
       vol.addEventListener('input', () => { tr.vol = +vol.value; applyMix(); });
       row.append(pick, ms);
-      if (tr.kind === 'guitar') {
+      if (hasRig(tr)) {
         const wrap = document.createElement('label'); wrap.className = 'rigsel';
         const sel = document.createElement('select'); sel.setAttribute('aria-label', 'Rig for ' + tr.name);
-        RIGS.forEach(([id, name]) => { const o = document.createElement('option'); o.value = id; o.textContent = name; sel.appendChild(o); });
+        rigsFor(tr).forEach(([id, name]) => { const o = document.createElement('option'); o.value = id; o.textContent = name.replace(/^Bass: /, ''); sel.appendChild(o); });
         sel.value = tr.rig;
         sel.addEventListener('change', () => { setTrackRig(tr, sel.value); syncAllRig(); });
         const lab = document.createElement('span'); lab.textContent = tr.rigChanges.length ? 'Rig from bar 1' : 'Rig';
@@ -1239,7 +1275,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
           inp.setAttribute('aria-label', 'Bar where the rig changes on ' + tr.name);
           inp.addEventListener('change', () => { c.bar = Math.min(nb, Math.max(2, Math.round(+inp.value) || 2)) - 1; tr.rigChanges.sort((a, b) => a.bar - b.bar); renderTracks(); renderTab(); });
           const rs = document.createElement('select'); rs.setAttribute('aria-label', 'Rig from bar ' + (c.bar + 1) + ' on ' + tr.name);
-          RIGS.forEach(([id, name]) => { const o = document.createElement('option'); o.value = id; o.textContent = name; rs.appendChild(o); });
+          rigsFor(tr).forEach(([id, name]) => { const o = document.createElement('option'); o.value = id; o.textContent = name.replace(/^Bass: /, ''); rs.appendChild(o); });
           rs.value = c.rig;
           rs.addEventListener('change', () => { c.rig = rs.value; stateFor(tr, c.rig); if (ctx && tr.post) ensureChain(tr, c.rig); renderTab(); syncAllRig(); });
           const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove the rig change at bar ' + (c.bar + 1));
@@ -1252,7 +1288,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
           add.title = 'Adds a rig change at the bar you\'re on (or bar 2); you can edit the bar number';
           add.addEventListener('click', () => {
             const sp = spanAt(songNow()), at = sp && sp.bi > 0 ? sp.bi : 1;
-            const cur = rigAt(tr, at), rig = cur === 'clean' || cur === 'dream' || cur === 'acoustic' ? 'classicmetal' : 'clean';
+            const cur = rigAt(tr, at), rig = tr.kind === 'bass' ? (cur === 'bass-drive' ? 'bass-finger' : 'bass-drive') : cur === 'clean' || cur === 'dream' || cur === 'acoustic' ? 'classicmetal' : 'clean';
             tr.rigChanges = tr.rigChanges.filter(c => c.bar !== at); tr.rigChanges.push({ bar: at, rig }); tr.rigChanges.sort((a, b) => a.bar - b.bar);
             stateFor(tr, rig); if (ctx && tr.post) ensureChain(tr, rig);
             renderTracks(); renderTab(); syncAllRig();
@@ -1345,26 +1381,28 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 
   /* ---------- rig ---------- */
   function syncAllRig() {
-    const sel = $('rig'), gs = song ? song.tracks.filter(t => t.kind === 'guitar') : [];
-    const ids = [...new Set(gs.map(t => t.rig))]; if (gs.some(t => t.rigChanges.length)) ids.push('changes');
-    sel.querySelector('option[value=""]').textContent = ids.length > 1 ? 'Different per track' : 'Choose a rig';
-    sel.value = ids.length === 1 ? ids[0] : '';
-    sel.disabled = !gs.length;
+    [['rig', 'guitar', 'Choose a rig'], ['rig-bass', 'bass', 'Choose a tone']].forEach(([sid, kind, ask]) => {
+      const sel = $(sid), gs = song ? song.tracks.filter(t => t.kind === kind) : [];
+      const ids = [...new Set(gs.map(t => t.rig))]; if (gs.some(t => t.rigChanges.length)) ids.push('changes');
+      sel.querySelector('option[value=""]').textContent = ids.length > 1 ? 'Different per track' : ask;
+      sel.value = ids.length === 1 ? ids[0] : '';
+      sel.disabled = !gs.length;
+    });
   }
-  (() => {
-    const sel = $('rig');
-    const o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Different per track'; sel.appendChild(o0);
-    RIGS.forEach(([id, name]) => { const o = document.createElement('option'); o.value = id; o.textContent = name; sel.appendChild(o); });
+  [['rig', 'guitar', 'Different per track'], ['rig-bass', 'bass', 'Different per track']].forEach(([sid, kind, first]) => {
+    const sel = $(sid);
+    const o0 = document.createElement('option'); o0.value = ''; o0.textContent = first; sel.appendChild(o0);
+    RIGS.filter(r => rigIsBass(r) === (kind === 'bass')).forEach(([id, name]) => { const o = document.createElement('option'); o.value = id; o.textContent = name.replace(/^Bass: /, ''); sel.appendChild(o); });
     sel.addEventListener('change', () => {
       if (!sel.value || !song) return;
-      song.tracks.forEach(tr => { if (tr.kind === 'guitar') { tr.rigChanges = []; setTrackRig(tr, sel.value); } });
+      song.tracks.forEach(tr => { if (tr.kind === kind) { tr.rigChanges = []; setTrackRig(tr, sel.value); } });
       renderTab();
       renderTracks(); syncAllRig();
     });
-  })();
+  });
   /* ---------- save as audio ---------- */
   // Render the song offline (faster than real time) through the same graph: each guitar track's own pedal chain,
-  // bass/drums/others dry, the limiter at the end. Then encode and hand over the file.
+  // bass its own tone chain, drums/others dry, the limiter at the end. Then encode and hand over the file.
   let dlFmt = prefs.dlFmt === 'wav' ? 'wav' : 'mp3', exporting = false;
   const downloadsP = Promise.resolve(undefined);   // GitHub Pages: ordinary browser downloads
   const syncFmt = () => document.querySelectorAll('#dl-fmt button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === dlFmt)));
@@ -1527,7 +1565,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   const pdfText = t => String(t).replace(/♩=(\d+)/g, '$1 bpm').replace(/▸/g, '>').replace(/×/g, 'x').replace(/[^\x00-\xff]/g, '?');
   const PDF_TEXT = { fr: ['courier', 'bold', 11.5, '#111111'], tn: ['courier', 'normal', 10, '#6b7080'], bn: ['courier', 'normal', 9.5, '#6b7080'],
     sec: ['helvetica', 'bold', 12, '#444a58'], chd: ['helvetica', 'bold', 13.5, '#8a5a0e'], rigmk: ['courier', 'bold', 9.5, '#a33c38'],
-    fx: ['courier', 'normal', 9, '#555a66'], ts: ['helvetica', 'bold', 15, '#111111'] };
+    fx: ['courier', 'normal', 9, '#555a66'], lyr: ['helvetica', 'normal', 9.5, '#333333'], ts: ['helvetica', 'bold', 15, '#111111'] };
   function drawRow(doc, svg, ox, oy, sc) {
     const root = new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement;
     const X = v => ox + (parseFloat(v) + 1) * sc, Y = v => oy + parseFloat(v) * sc;
@@ -1590,7 +1628,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       doc.text(pdfText(tr.name), M, y + 10);
       doc.setFont('courier', 'normal'); doc.setFontSize(9.5); doc.setTextColor('#555a66');
       const tun = (tuningName(tr.tuning) || 'Custom tuning') + ' (' + tuningText(tr.tuning) + ')' + (arrEq(tr.tuning, tr.orig) ? '' : ', retuned from ' + tuningText(tr.orig));
-      doc.text(pdfText(tun + (tr.kind === 'guitar' ? '  ·  rig: ' + rigLabel(tr.rig) : '')), M, y + 24);
+      doc.text(pdfText(tun + (hasRig(tr) ? '  ·  ' + (tr.kind === 'bass' ? 'tone: ' : 'rig: ') + rigLabel(tr.rig) : '')), M, y + 24);
       y += 34;
       tabRows(tr, LW).forEach(r => {
         const h = r.h * sc;
@@ -1644,14 +1682,16 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   function barLayout(tr, bi, first) {
     const mb = song.bars[bi], beats = tr.bars[bi].filter(b => b.staff === 0);
-    const starts = [...new Set(beats.map(b => b.start))].sort((a, b) => a - b);
+    const ly = (song.lyrByBar && song.lyrByBar.get(bi)) || [], lw = new Map();
+    ly.forEach(l => lw.set(l.start, Math.max(lw.get(l.start) || 0, lyrW(l))));
+    const starts = [...new Set(beats.map(b => b.start).concat(ly.map(l => l.start)))].sort((a, b) => a - b);
     const prevTs = bi > 0 ? song.bars[bi - 1].ts.join('/') : '';
     const showTs = bi === 0 || mb.ts.join('/') !== prevTs;
     let x = PAD_L + (first ? 26 : 0) + (showTs ? 20 : 0) + (mb.repStart ? 10 : 0);
     const xs = new Map();
-    starts.forEach((s, k) => { xs.set(s, x); const next = k + 1 < starts.length ? starts[k + 1] : mb.dur; x += 15 + 10 * Math.log2(1 + Math.max(60, next - s) / 240); });
+    starts.forEach((s, k) => { xs.set(s, x); const next = k + 1 < starts.length ? starts[k + 1] : mb.dur; x += Math.max(15 + 10 * Math.log2(1 + Math.max(60, next - s) / 240), (lw.get(s) || 0) + 3); });
     if (!starts.length) x += 40;
-    return { bi, w: x + 8 + (mb.repCount ? 8 : 0), xs, beats, showTs };
+    return { bi, w: x + 8 + (mb.repCount ? 8 : 0), xs, beats, showTs, lyr: ly };
   }
   function renderTab() {
     const box = $('tab'); box.innerHTML = ''; curBeat = null; lastRow = null;
@@ -1665,7 +1705,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   // Lay out a track's tab as rows of SVG, W units wide. Used for the screen and for the PDF.
   function tabRows(tr, W) {
     const nS = tr.tuning.length;
-    const staffH = (nS - 1) * GAP, H = TOP + staffH + BOT;
+    const staffH = (nS - 1) * GAP, LY = song.lyrByBar && song.lyrByBar.size ? 16 : 0, H = TOP + staffH + BOT + LY;
     const yS = s => TOP + (nS - 1 - s) * GAP;   // highest string on top, like printed tab
     // pack bars into rows
     const rows = []; let row = [], used = 0;
@@ -1693,7 +1733,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         // header: section, bar number, endings, tempo
         let secEnd = x0 + 4;
         if (mb.section) { const t = mb.section.slice(0, 26); parts.push(`<text class="sec" x="${(x0 + 4).toFixed(1)}" y="11">${esc(t)}</text>`); secEnd += t.length * 6.2 + 8; }
-        if (tr.kind === 'guitar') { const ch = (tr.rigChanges || []).find(c => c.bar === L.bi); if (ch) parts.push(`<text class="rigmk" x="${secEnd.toFixed(1)}" y="11">▸ ${esc(rigLabel(ch.rig))}</text>`); }
+        if (hasRig(tr)) { const ch = (tr.rigChanges || []).find(c => c.bar === L.bi); if (ch) parts.push(`<text class="rigmk" x="${secEnd.toFixed(1)}" y="11">▸ ${esc(rigLabel(ch.rig))}</text>`); }
         parts.push(`<text class="bn" x="${(x0 + 3).toFixed(1)}" y="${TOP - 16}">${L.bi + 1}</text>`);
         if (mb.tempo && (L.bi === 0 || mb.tempo !== song.bars.slice(0, L.bi).reverse().find(b => b.tempo)?.tempo)) parts.push(`<text class="fx" x="${(x0 + 22).toFixed(1)}" y="${TOP - 16}">♩=${Math.round(mb.tempo)}</text>`);
         if (mb.alt) {
@@ -1743,6 +1783,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
           }
           parts.push(`<g class="bt" data-id="${b.id}">${g.join('')}</g>`);
         });
+        (L.lyr || []).forEach(l => parts.push(`<text class="lyr" x="${(sx(L.xs.get(l.start) ?? 0) - 4).toFixed(1)}" y="${(TOP + staffH + BOT + 9).toFixed(1)}">${esc(l.t + (l.c ? ' -' : ''))}</text>`));
         x0 += bw;
         // bar line / repeat end
         if (mb.repCount) {
@@ -1800,6 +1841,88 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   }
 
   renderTracks(); renderTuning(); renderTab();
+
+  /* ---------- lyrics: read from the file, or typed/pasted and lined up with a track's notes ---------- */
+  // song.lyrics = [{ bi, start, t, c }] (bar, start tick, syllable, c = the word goes on in the next syllable). song.lyricsSrc = what the
+  // person typed ({ text, track }) so it's kept with the song and lined up again next time.
+  const lyrW = l => (l.t.length + (l.c ? 2 : 0)) * 5.6 + 2;
+  function setLyrics(list) {
+    song.lyrics = (list || []).slice().sort((a, b) => a.bi - b.bi || a.start - b.start);
+    song.lyrByBar = new Map();
+    song.lyrics.forEach(l => { if (!song.lyrByBar.has(l.bi)) song.lyrByBar.set(l.bi, []); song.lyrByBar.get(l.bi).push(l); });
+  }
+  // "a-gain," -> "a" (word goes on) + "gain,"; "_" = a note with no word under it; [Chorus] is ignored
+  function lyrSyllables(text) {
+    const out = [];
+    String(text).replace(/\[[^\]]*\]/g, ' ').split(/\s+/).filter(Boolean).forEach(w => {
+      if (w === '_') { out.push({ t: '', c: false }); return; }
+      const parts = w.split('-');
+      if (parts.length === 1) { out.push({ t: w, c: false }); return; }
+      parts.forEach((p, i) => { if (p) out.push({ t: p, c: i < parts.length - 1 }); });
+    });
+    return out;
+  }
+  // the notes that get a word: one per moment, no rests, no held (tied) notes
+  function lyrSlots(ti) {
+    const tr = song.tracks[ti], slots = [];
+    tr.bars.forEach((beats, bi) => {
+      const seen = new Set();
+      beats.forEach(b => { if (b.rest || b.grace || !b.notes.length || seen.has(b.start) || b.notes.every(n => n.tieDest)) return; seen.add(b.start); slots.push({ bi, start: b.start }); });
+    });
+    return slots;
+  }
+  function applyLyricsText(text, ti, quiet) {
+    const tr = song.tracks[ti]; if (!tr) return { used: 0, total: 0, slots: 0 };
+    const syl = lyrSyllables(text), slots = lyrSlots(ti), list = [];
+    syl.forEach((y, i) => { if (i < slots.length && y.t) list.push({ bi: slots[i].bi, start: slots[i].start, t: y.t, c: y.c }); });
+    song.lyricsSrc = { text: String(text), track: ti };
+    setLyrics(list);
+    if (!quiet) { renderTab(); saveSettingsSoon(); }
+    return { used: Math.min(syl.length, slots.length), total: syl.length, slots: slots.length };
+  }
+  function lyrToText() {
+    if (song.lyricsSrc) return song.lyricsSrc.text;
+    let out = '', prev = null;
+    (song.lyrics || []).forEach(l => {
+      const piece = l.t + (l.c ? '-' : '');
+      if (prev) out += prev.c ? '' : (l.bi - prev.bi >= 2 ? '\n' : ' ');
+      out += piece; prev = l;
+    });
+    return out;
+  }
+  function lyrDefaultTrack() {
+    if (song.lyricsSrc && song.tracks[song.lyricsSrc.track]) return song.lyricsSrc.track;
+    if (song.lyrTrack >= 0) return song.lyrTrack;
+    const byName = song.tracks.findIndex(t => t.kind !== 'drums' && /vocal|voice|sing|lead|melod|voz|canto/i.test(t.name));
+    if (byName >= 0) return byName;
+    const free = song.tracks.findIndex(t => t.kind !== 'drums' && !t.tuning);
+    return free >= 0 ? free : Math.max(0, view);
+  }
+  (() => {
+    const dlg = $('lyr-dlg'), msg = t => { $('lyr-msg').textContent = t; };
+    $('lyr-btn').addEventListener('click', () => {
+      if (!song) return;
+      const sel = $('lyr-trk'); sel.innerHTML = '';
+      song.tracks.forEach((t, i) => { if (t.kind !== 'drums') { const o = document.createElement('option'); o.value = i; o.textContent = t.name; sel.appendChild(o); } });
+      sel.value = lyrDefaultTrack(); $('lyr-txt').value = lyrToText();
+      msg(song.lyrics && song.lyrics.length ? song.lyrics.length + ' syllables are showing under the tab.' : 'Paste or type the words, then press Auto-align.');
+      if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+    });
+    $('lyr-x').addEventListener('click', () => { if (dlg.close) dlg.close(); else dlg.removeAttribute('open'); });
+    $('lyr-clean').addEventListener('click', () => {
+      const t = $('lyr-txt'); const before = t.value;
+      t.value = before.replace(/\[[^\]]*\]/g, '').replace(/\([^)]*\)/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+      msg(t.value === before ? 'No (…) or […] notes found.' : 'Took out the (…) and […] notes.');
+    });
+    $('lyr-go').addEventListener('click', () => {
+      const ti = +$('lyr-trk').value, r = applyLyricsText($('lyr-txt').value, ti), name = song.tracks[ti].name;
+      if (!r.total) msg('Lyrics cleared.');
+      else if (!r.slots) msg('“' + name + '” has no notes to put words on. Pick another track.');
+      else msg(r.used + ' syllables are on the notes of “' + name + '”.' + (r.total > r.slots ? ' ' + (r.total - r.slots) + ' more didn’t fit (the track has ' + r.slots + ' notes). Use _ for a note with no word, or pick a different track.' : r.total < r.slots ? ' The last ' + (r.slots - r.total) + ' notes have no words.' : ''));
+    });
+    $('lyr-file').addEventListener('click', () => { song.lyricsSrc = null; setLyrics(song.fileLyrics || []); $('lyr-txt').value = lyrToText(); renderTab(); saveSettingsSoon(); msg(song.lyrics.length ? 'Back to the lyrics saved in the file.' : 'The file has no lyrics.'); });
+    $('lyr-clear').addEventListener('click', () => { $('lyr-txt').value = ''; const r = applyLyricsText('', +$('lyr-trk').value); msg('Lyrics cleared.'); });
+  })();
   loadSong(demoSong(), 'demo');   // open with the demo so the page shows what it does
 })();
 </script>
