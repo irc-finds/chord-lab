@@ -171,6 +171,8 @@ h2 { font-size: 17px; }
 .step.R .g { color: var(--muted); font-weight: 400; }
 .step.hit { background: var(--root); border-color: var(--root); color: var(--on-root); }
 .step.hit .c { color: inherit; }
+.wstep { border: 1px dashed var(--line); background: transparent; color: var(--muted); border-radius: 5px; height: 24px; padding: 0; font-size: 14px; line-height: 1; touch-action: manipulation; }
+.wstep.on { border-style: solid; border-color: var(--accent); color: var(--accent); font-weight: 700; }
 .tight { gap: 6px; }
 @media (max-width: 520px) { .beat { flex-basis: calc(var(--n) * 36px); } }
 
@@ -639,6 +641,8 @@ footer { display: none; }
       </div>
       <div class="steps" id="prog-steps"></div>
       <div class="hint"><b>↓</b> down · <b>↑</b> up · <b>PM</b> palm mute · <b>✕</b> chuck · <b>■</b> stop · <b>·</b> let it ring. Tap a box to cycle it, tap a chord to put it on the neck.</div>
+      <div class="row tight"><label class="toggle"><span class="eyebrow">Tremolo bar</span><select id="wb-depth" aria-label="Tremolo bar depth"><option value="0">Off</option><option value="1">½ step</option><option value="2">1 step</option><option value="3">1½ steps</option><option value="4">2 steps</option><option value="5">2½ steps</option><option value="6">3 steps</option></select></label></div>
+      <div class="hint" id="wb-hint" hidden>The small boxes under the strums are the bar: <b>↗</b> scoop (start low, come up) · <b>∨</b> dip and back · <b>↘</b> dive and hold. Tap to cycle.</div>
       <div class="field">
         <label class="eyebrow" for="prog-name">Save this progression</label>
         <div class="text-in">
@@ -1808,6 +1812,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     return [...BEAT_LENS.map(v => ['c' + v, BEAT_SAY[v] + u + (v > 1 ? 's' : '')]), ['b1', '1 bar'], ['b2', '2 bars'], ['b3', '3 bars'], ['b4', '4 bars']];
   };
   const patMeter = x => x[3] || '4/4';
+  const WGLYPH = { v: '↗', d: '∨', w: '↘', '-': '·' }, WSAY = { v: 'scoop up from below', d: 'dip and come back', w: 'dive and hold', '-': 'none' };
   const GLYPH = { D: '↓', U: '↑', P: 'PM', X: '✕', S: '■', '-': '·' };
   const SAY = { D: 'downstroke', U: 'upstroke', P: 'palm-muted downstroke', X: 'muted chuck', S: 'stop (mute the strings)', '-': 'let it ring' };
   const COUNTS = { 1: [''], 2: ['', '&'], 3: ['', '&', 'a'], 4: ['', 'e', '&', 'a'] };
@@ -1890,6 +1895,8 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     const mt = $('prog-meter'); if (!mt.options.length) Object.keys(METERS).forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = k; mt.appendChild(o); });
     mt.value = p.meter;
     const pb = patBarsOf(p); $('pat-bars').value = String(pb);
+    if (p.wb && p.wb.length !== p.pat.length) p.wb = (p.wb + '-'.repeat(p.pat.length)).slice(0, p.pat.length);
+    $('wb-depth').value = p.wb ? String(p.wbDepth || 2) : '0'; if (!$('wb-depth').value) $('wb-depth').value = '2'; $('wb-hint').hidden = !p.wb;
     $('pat-title').textContent = 'Strum pattern · ' + (pb === 1 ? 'one bar' : pb + ' bars') + ' of ' + p.meter + (p.meter.endsWith('/8') ? ' (tempo counts eighth notes)' : '');
     pre.value = mi >= 0 ? String(mi) : '';
     syncSeg('seg-sub', p.sub);
@@ -1916,6 +1923,13 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
           b.addEventListener('click', () => cycleStep(i));
           beat.appendChild(b);
         }
+        if (p.wb) for (let g = 0, i0 = (bar * counts + bt - size) * p.sub; g < size * p.sub; g++) {   // the tremolo-bar row: one small box under each strum
+          const i = i0 + g, w = p.wb[i] || '-', b = document.createElement('button'); b.type = 'button';
+          b.className = 'wstep' + (w !== '-' ? ' on' : ''); b.textContent = WGLYPH[w] || '·';
+          b.setAttribute('aria-label', `Tremolo bar at step ${i + 1}: ${WSAY[w] || 'none'}`);
+          b.addEventListener('click', () => { const o = ['-', 'v', 'd', 'w'], nx = o[(o.indexOf(w) + 1) % o.length]; p.wb = p.wb.slice(0, i) + nx + p.wb.slice(i + 1); save(); renderProg(); });
+          beat.appendChild(b);
+        }
         row.appendChild(beat);
       }
       box.appendChild(row);
@@ -1923,15 +1937,20 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
   }
   function setPatBars(n) {
     const p = P(), one = countsOf(p.meter) * p.sub;
-    let out = ''; for (let j = 0; j < n * one; j++) out += p.pat[j % p.pat.length] || '-';   // longer: repeat what's there; shorter: keep the first bars
-    p.pat = out;
+    const fit = x => { let out = ''; for (let j = 0; j < n * one; j++) out += x[j % x.length] || '-'; return out; };   // longer: repeat what's there; shorter: keep the first bars
+    p.pat = fit(p.pat); if (p.wb) p.wb = fit(p.wb);
   }
+  $('wb-depth').addEventListener('change', e => {
+    const p = P(), v = Number(e.target.value);
+    if (!v) { delete p.wb; delete p.wbDepth; } else { p.wbDepth = v; if (!p.wb || p.wb.length !== p.pat.length) p.wb = '-'.repeat(p.pat.length); }
+    save(); renderProg();
+  });
   $('pat-bars').addEventListener('change', e => { setPatBars(Number(e.target.value)); save(); renderProg(); });
   function setMeter(m) {
     const p = P(); if (!METERS[m] || m === p.meter) return;
-    const pb = patBarsOf(p), oldOne = countsOf(p.meter) * p.sub, one = countsOf(m) * p.sub; let out = '';
-    for (let bar = 0; bar < pb; bar++) for (let j = 0; j < one; j++) out += p.pat[bar * oldOne + (j % oldOne)] || '-';   // each bar trimmed or repeated to fit
-    p.pat = out; p.meter = m;
+    const pb = patBarsOf(p), oldOne = countsOf(p.meter) * p.sub, one = countsOf(m) * p.sub;
+    const fit = x => { let out = ''; for (let bar = 0; bar < pb; bar++) for (let j = 0; j < one; j++) out += x[bar * oldOne + (j % oldOne)] || '-'; return out; };   // each bar trimmed or repeated to fit
+    p.pat = fit(p.pat); if (p.wb) p.wb = fit(p.wb); p.meter = m;
   }
   function markStep() {
     document.querySelectorAll('#prog-steps .step').forEach(b => b.classList.toggle('hit', !!pl && !pl.song && Number(b.dataset.i) === pl.step));
@@ -1947,9 +1966,8 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
   }
   function setSub(n) {
     const p = P(); if (n === p.sub) return;
-    let out = '';
-    for (let j = 0; j < countsOf(p.meter) * n * patBarsOf(p); j++) out += (j * p.sub) % n === 0 ? p.pat[(j * p.sub) / n] : '-';
-    p.pat = out; p.sub = n;
+    const fit = x => { let out = ''; for (let j = 0; j < countsOf(p.meter) * n * patBarsOf(p); j++) out += (j * p.sub) % n === 0 ? x[(j * p.sub) / n] : '-'; return out; };
+    p.pat = fit(p.pat); if (p.wb) p.wb = fit(p.wb); p.sub = n;
   }
   // My progressions: folders, then saved songs and progressions in the chosen folder
   const progById = id => st.progs.find(q => q.id === id);
@@ -2269,7 +2287,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
   $('prog-bpm-n').addEventListener('change', e => { const v = Math.round(parseFloat(e.target.value)); if (isFinite(v)) { P().bpm = Math.min(300, Math.max(30, v)); $('prog-bpm').value = P().bpm; save(); } e.target.value = P().bpm; });
   $('prog-preset').addEventListener('change', e => {
     if (e.target.value === '') return;
-    const x = PATTERNS[+e.target.value]; P().sub = x[1]; P().pat = x[2]; P().meter = patMeter(x); save(); renderProg();
+    const x = PATTERNS[+e.target.value]; P().sub = x[1]; P().pat = x[2]; P().meter = patMeter(x); if (P().wb) P().wb = '-'.repeat(x[2].length); save(); renderProg();
   });
   $('prog-meter').addEventListener('change', e => { setMeter(e.target.value); save(); renderProg();
   });
@@ -2379,7 +2397,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
       const steps = []; let bt = 0;
       p.chords.forEach((c, ci) => {
         const len = Math.max(1, Math.round((c.bars ? c.bars * counts : c.beats) * sub));
-        for (let k = 0; k < len; k++) { steps.push({ ci, ch: p.pat[bt % p.pat.length] || '-', first: k === 0 }); bt++; }
+        for (let k = 0; k < len; k++) { steps.push({ ci, ch: p.pat[bt % p.pat.length] || '-', w: p.wb ? p.wb[bt % p.wb.length] || '-' : '-', first: k === 0 }); bt++; }
       });
       const realSteps = steps.length;
       while (steps.length % barSteps) steps.push({ ci: -1, ch: '-' });
@@ -2425,6 +2443,12 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
             else if (fr && stp.ch === 'X') { add(strs, n => { n.isDead = true; }); last = null; }
             else if (stp.ch === 'S') { beat.isEmpty = false; last = null; }   // stop: a rest
             else if (last) { last.strs.forEach(i => { const n = new M.Note(); n.string = i + 1; n.fret = last.fr[i]; n.isTieDestination = true; beat.addNote(n); }); }
+            if (stp.w && stp.w !== '-' && beat.notes.length && M.WhammyType) {   // tremolo bar, in quarter tones
+              const q = -2 * (p.wbDepth || 2), W = M.WhammyType;
+              const pts = stp.w === 'v' ? [[0, q], [30, 0]] : stp.w === 'd' ? [[0, 0], [5, q], [30, 0]] : [[0, 0], [30, q], [60, q]];
+              beat.whammyBarType = stp.w === 'v' ? W.PrediveDive : stp.w === 'd' ? W.Dip : W.Dive;
+              pts.forEach(([o, v]) => beat.addWhammyBarPoint(new M.BendPoint(o, v)));
+            }
             voice.addBeat(beat);
           });
         }
@@ -2510,6 +2534,8 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
       if (off === 0) {
         const i = pl.bt / stT, ch = p.pat[i] || '-';
         if (ch !== '-') strum(c, ch, pl.t, stT / TPB * beatSec, i, p.sub, p.meter);
+        const w = p.wb && p.wb[i];
+        if (w && w !== '-') whammy(w, pl.t, beatSec, p.wbDepth || 2);
         pl.marks.push({ t: pl.t, chip: pl.chip, i, c, part: sg ? sg.idx : -1, rep: sg ? sg.rep : 0 });
       }
       const adv = stT - off;
@@ -2560,6 +2586,19 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
       if (ch === 'X') vs.forEach(v => fadeAt(v, tt + 0.03));
       else if (ch === 'P') vs.forEach(v => palmAt(v, tt));   // the picking hand rests on the strings: a short, thick thud
       else vs.forEach(v => { v.s = s; v.occ = pl.occ; pl.live.push(v); });
+    });
+  }
+  // The tremolo bar bends every string that's ringing (it moves the whole bridge), a few half steps down.
+  // v: starts low and comes back up within about a third of a count · d: dips and returns · w: dives and stays down
+  function whammy(kind, t, countSec, depth) {
+    const k = Math.pow(2, -depth / 12);
+    pl.live.forEach(v => {
+      if (v.end <= t || !v.rate) return;
+      const r = v.src.playbackRate, base = v.rate;
+      r.cancelScheduledValues(t);
+      if (kind === 'v') { r.setValueAtTime(base * k, t); r.linearRampToValueAtTime(base, t + 0.35 * countSec); }
+      else if (kind === 'd') { r.setValueAtTime(base, t); r.linearRampToValueAtTime(base * k, t + 0.08 * countSec); r.linearRampToValueAtTime(base, t + 0.5 * countSec); }
+      else { r.setValueAtTime(base, t); r.linearRampToValueAtTime(base * k, t + 0.5 * countSec); }
     });
   }
   function progDraw() {
@@ -2778,6 +2817,19 @@ function gpToParts(score, ti, opt) {
   const BR = M.BrushType || {}, PK = M.PickStroke || {};
   const isDown = b => b.brushType === BR.BrushDown || b.brushType === BR.ArpeggioDown || b.pickStroke === PK.Down;
   const isUp = b => b.brushType === BR.BrushUp || b.brushType === BR.ArpeggioUp || b.pickStroke === PK.Up;
+  // tremolo bar (Guitar Pro "whammy bar", values in quarter tones): v = starts down and comes back up (a scoop), d = dips and
+  // comes back, w = dives and stays down; '-' = no bar
+  const depths = {};
+  const whammyOf = b => {
+    const pts = b.hasWhammyBar && b.whammyBarPoints ? b.whammyBarPoints : null;
+    if (!pts || !pts.length) return '-';
+    const v = pts.map(x => x.value), lo = Math.min(...v), first = v[0], last = v[v.length - 1];
+    if (lo >= 0) return '-';
+    const semi = Math.min(6, Math.max(1, Math.round(-lo / 2))); depths[semi] = (depths[semi] || 0) + 1;
+    if (first < 0 && last > first) return 'v';
+    if (first === 0 && last === 0) return 'd';
+    return last < 0 ? 'w' : 'd';
+  };
 
   // ---- one record per bar ----
   let tempo = score.tempo || 120;
@@ -2800,7 +2852,7 @@ function gpToParts(score, ti, opt) {
           if (x.isDead) { dead++; return; }
           fr[si] = x.fret; live++; if (x.isPalmMute) pm++;
         });
-        beats.push({ start, dur, fr, live, dead, pm, rest: b.isRest || !b.notes.length, tie: b.notes.length > 0 && !sounding.length, down: isDown(b), up: isUp(b) });
+        beats.push({ start, dur, fr, live, dead, pm, rest: b.isRest || !b.notes.length, tie: b.notes.length > 0 && !sounding.length, down: isDown(b), up: isUp(b), wb: whammyOf(b) });
       });
     });
     return { bi, meter, num, den, countTicks, barTicks, tempo, beats, empty: !beats.some(b => !b.rest),
@@ -2829,11 +2881,13 @@ function gpToParts(score, ti, opt) {
   // ---- per bar: what's struck on each grid step (the shape and the stroke) ----
   const songTempo = bars.find(b => !b.empty) ? bars.find(b => !b.empty).tempo : tempo;
   const stepsOf = (b, sub) => {
-    const n0 = b.num * sub, step = b.countTicks / sub, out = new Array(n0).fill(null);
+    const n0 = b.num * sub, step = b.countTicks / sub, out = new Array(n0).fill(null), wb = new Array(n0).fill('-');
+    out.wb = wb;
     let prevEnd = 0, prevNotes = false;
     b.beats.forEach(bt => {
       const pos = Math.round(bt.start / step);
       if (pos < 0 || pos >= n0) return;
+      if (bt.wb !== '-' && !bt.rest) wb[pos] = bt.wb;
       if (bt.rest) { if (prevNotes && !out[pos]) out[pos] = { ch: 'S' }; prevNotes = false; return; }
       if (bt.tie) { prevNotes = true; return; }
       let ch;
@@ -2884,7 +2938,8 @@ function gpToParts(score, ti, opt) {
         shapes.push(lastShape);
         pat.push(!x ? '-' : x.ch === '?' ? dir(k) : x.ch);
       }
-      return { pat: pat.join(''), shapes, key: pat.join('') + '|' + shapes.join('|'), counts: bs[i].num };
+      const wb = g.wb.slice(0, steps).join('');
+      return { pat: pat.join(''), wb, pw: pat.join('') + '/' + wb, shapes, key: pat.join('') + '/' + wb + '|' + shapes.join('|'), counts: bs[i].num };
     });
     // the shortest phrase that repeats through the block (the last time round may stop early)
     let period = us.length;
@@ -2903,6 +2958,7 @@ function gpToParts(score, ti, opt) {
     pieces.forEach(pc => progOfBlock.push({ blk, pc, meter, num, den, sub, steps, tempo: bs[0].tempo }));
   });
 
+  const wbDepth = Number(Object.keys(depths).sort((x, y) => depths[y] - depths[x])[0]) || 2;   // how far the bar goes, in half steps
   // ---- each piece → a progression: a strum pattern of 1, 2 or 4 bars, and chords as short as the riff needs ----
   const parts = [];
   progOfBlock.forEach(({ blk, pc, meter, num, den, sub, steps, tempo: q }) => {
@@ -2912,11 +2968,11 @@ function gpToParts(score, ti, opt) {
       if (P > us.length && P > 1) return;
       const pat = [];
       for (let j = 0; j < P; j++) {
-        const c = {}; us.forEach((u, i) => { if (i % P === j && u.counts === num) c[u.pat] = (c[u.pat] || 0) + 1; });
-        pat.push(Object.keys(c).sort((x, y) => c[y] - c[x])[0] || us[j % us.length].pat);
+        const c = {}; us.forEach((u, i) => { if (i % P === j && u.counts === num) c[u.pw] = (c[u.pw] || 0) + 1; });
+        pat.push(Object.keys(c).sort((x, y) => c[y] - c[x])[0] || us[j % us.length].pw);
       }
-      const hit = us.filter((u, i) => u.pat === pat[i % P]).length;
-      if (!best || hit > best.hit) best = { P, pat: pat.join(''), hit };
+      const hit = us.filter((u, i) => u.pw === pat[i % P]).length;
+      if (!best || hit > best.hit) best = { P, pat: pat.map(x => x.split('/')[0]).join(''), wb: pat.map(x => x.split('/')[1]).join(''), hit };
     });
     // chords: runs of the same shape, step by step
     const runs = [];
@@ -2936,12 +2992,13 @@ function gpToParts(score, ti, opt) {
     if (!chords.length) return;
     const bpm = Math.max(30, Math.min(300, Math.round(den === 8 ? q * 2 : q)));
     parts.push({ name: blk.label, sectionStart: blk.sectionStart, times: pc.times * blk.times, bars: us.length * pc.times * blk.times,
-      patBars: best.hit * pc.times * blk.times, prog: { name: '', chords, sub, pat: best.pat, bpm, loop: true, meter } });
+      patBars: best.hit * pc.times * blk.times, prog: Object.assign({ name: '', chords, sub, pat: best.pat, bpm, loop: true, meter },
+        /[vdw]/.test(best.wb) ? { wb: best.wb, wbDepth } : {}) });
   });
   // the same music anywhere in the song shares one progression; next to itself it just plays more times
   const progs = [], order = [];
   parts.forEach(p => {
-    const k = JSON.stringify([p.prog.chords.map(c => [c.frets, c.bars || 0, c.beats || 0]), p.prog.sub, p.prog.pat, p.prog.bpm, p.prog.meter]);
+    const k = JSON.stringify([p.prog.chords.map(c => [c.frets, c.bars || 0, c.beats || 0]), p.prog.sub, p.prog.pat, p.prog.wb || '', p.prog.bpm, p.prog.meter]);
     let i = progs.findIndex(x => x.key === k);
     if (i < 0) { progs.push({ key: k, names: [], prog: p.prog, bars: p.bars / p.times, patBars: p.patBars, totalBars: p.bars }); i = progs.length - 1; }
     else { progs[i].patBars += p.patBars; progs[i].totalBars += p.bars; }
@@ -2965,7 +3022,7 @@ function gpToParts(score, ti, opt) {
     if (used[nm] > 1) nm += ' ' + String.fromCharCode(96 + used[nm]);   // Verse, Verse b, Verse c…
     x.name = nm; x.prog.name = nm; delete x.key;
   });
-  return { progs, order, sections: parts.length, direction: dirMode, inst, tuning: T, title: score.title || '', artist: score.artist || '', track: track.name || '' };
+  return { progs, order, sections: parts.length, whammy: progs.some(x => x.prog.wb), direction: dirMode, inst, tuning: T, title: score.title || '', artist: score.artist || '', track: track.name || '' };
 }
 
 
@@ -3000,6 +3057,10 @@ function gpToParts(score, ti, opt) {
       const fit = document.createElement('span'); fit.className = 'hint';
       const pb = patBarsOf(x.prog);
       fit.textContent = (x.patBars >= x.totalBars ? 'Every bar uses this strum' : `This strum fits ${x.patBars} of ${x.totalBars} bars (the closest one)`) + (pb > 1 ? ` · a ${pb}-bar pattern` : '') + '.';
+      if (x.prog.wb) {
+        const n = (x.prog.wb.match(/[vdw]/g) || []).length, kinds = [...new Set(x.prog.wb.replace(/-/g, ''))].map(k => ({ v: 'scoops', d: 'dips', w: 'dives' })[k]).join(' and ');
+        fit.textContent += ` Tremolo bar: ${kinds}, ${n} per ${pb > 1 ? pb + ' bars' : 'bar'}, ${({ 1: '½ step', 2: '1 step', 3: '1½ steps', 4: '2 steps', 5: '2½ steps', 6: '3 steps' })[x.prog.wbDepth] || x.prog.wbDepth / 2 + ' steps'} down.`;
+      }
       d.append(nmEl, ch, pt, fit); box.appendChild(d);
     });
     $('gp-song').textContent = 'Song order: ' + gpRes.order.map(o => gpRes.progs[o.ref].name + (o.times > 1 ? ' ×' + o.times : '')).join(' → ')
@@ -3481,7 +3542,7 @@ function gpToParts(score, ti, opt) {
     if (pan && ctx.createStereoPanner) { const pn = ctx.createStereoPanner(); pn.pan.value = pan; g.connect(pn); out = pn; }
     out.connect(fx.input);
     src.start(when);
-    const v = { src, g, end: when + p.buf.duration / src.playbackRate.value, stopped: false };
+    const v = { src, g, end: when + p.buf.duration / src.playbackRate.value, stopped: false, rate: src.playbackRate.value };
     voices.push(v);
     src.onended = () => { const k = voices.indexOf(v); if (k >= 0) voices.splice(k, 1); };
     return v;

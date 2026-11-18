@@ -1333,8 +1333,11 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
               tup: b.tupletNumerator > 0 && b.tupletDenominator > 0 && b.tupletNumerator !== b.tupletDenominator ? b.tupletNumerator : 0,
               rest: !!b.isRest, grace: !!b.graceType, brush: b.brushType || 0, notes: [], chordName: b.hasChord && b.chord && b.chord.name ? String(b.chord.name).trim() : '',
               chordPcs: b.hasChord && b.chord && b.chord.strings && raw.length ? b.chord.strings.map((f, i) => f >= 0 && raw[i] ? (raw[i] + f) % 12 : null).filter(x => x !== null) : [] };
+            // tremolo bar: the whole beat bends (quarter tones in the file → half steps), offsets 0..60 across the beat
+            const wb = b.hasWhammyBar && b.whammyBarPoints && b.whammyBarPoints.some(p => p.value) ? b.whammyBarPoints.map(p => [p.offset / 60, p.value / 2]) : null;
+            if (wb) beat.wb = wb;
             b.notes.forEach(n => {
-              const note = { s: si === 0 && tun && n.string > 0 ? n.string - 1 : -1, f: n.fret, pitch: n.realValue,
+              const note = { wb, s: si === 0 && tun && n.string > 0 ? n.string - 1 : -1, f: n.fret, pitch: n.realValue,
                 dead: !!n.isDead, pm: !!n.isPalmMute, ghost: !!n.isGhost, tieDest: !!n.isTieDestination, tie: null,
                 hDest: !!n.isHammerPullDestination, hOrig: null, slide: n.slideOutType || 0,
                 bend: n.hasBend && n.bendPoints ? n.bendPoints.map(p => [p.offset / 60, p.value / 2]) : null,
@@ -1584,7 +1587,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
           const spread = tr.kind === 'drums' || chord.length < 3 ? 0 : (b.brush >= 3 ? Math.min(0.06, db / chord.length) : 0.007);
           chord.forEach((n, k) => {
             if (n.tieDest && n.tie && n.tie._ev) { n.tie._ev.d = tb + db - n.tie._ev.t; n._ev = n.tie._ev; return; }
-            const ev = { t: tb + k * spread, d: db, tr: tr.i, p: n.pp, n, kind: tr.kind, bi };
+            const ev = { t: tb + k * spread, d: db, wd: db, tr: tr.i, p: n.pp, n, kind: tr.kind, bi };
             n._ev = ev; events.push(ev);
           });
         });
@@ -1824,13 +1827,21 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     const keep = st.fx;
     st.fx = rigFx ? rigFx : Object.assign({}, keep, { mode: ev.kind === 'bass' ? 'electric' : 'acoustic' });
     let v; try { v = pluckTo(ev.p, when, gain, tone, dest); } finally { st.fx = keep; }
-    if (n.bend) {   // bends: slide the string's pitch along the bend curve
-      const r = v.rate; v.src.playbackRate.setValueAtTime(r * Math.pow(2, n.bend[0][1] / 12), when);
-      n.bend.forEach(([o, semi]) => v.src.playbackRate.linearRampToValueAtTime(r * Math.pow(2, semi / 12), when + o * d));
+    const curve = bendCurve(n.bend && n.bend.map(([o, x]) => [o * d, x]), n.wb && n.wb.map(([o, x]) => [o * (ev.wd || ev.d) / speed, x]));   // in seconds
+    if (curve) {   // bends and the tremolo bar: slide the string's pitch along the curve
+      const r = v.rate; v.src.playbackRate.setValueAtTime(r * Math.pow(2, curve[0][1] / 12), when);
+      curve.forEach(([o, semi]) => v.src.playbackRate.linearRampToValueAtTime(r * Math.pow(2, semi / 12), when + o));
     }
     if (n.dead) fadeAt(v, when + 0.03);
     else if (n.pm) palmAt(v, when);
     else if (!n.ring) fadeAt(v, when + Math.max(0.05, d * (n.stacc ? 0.5 : 1)));
+  }
+  // a string bend and the tremolo bar add up: sample both at every point either has
+  function bendCurve(a, b) {
+    if (!a || !a.length) return b && b.length ? b : null;
+    if (!b || !b.length) return a;
+    const at = (c, o) => { if (o <= c[0][0]) return c[0][1]; for (let i = 1; i < c.length; i++) if (o <= c[i][0]) { const [o0, v0] = c[i - 1], [o1, v1] = c[i]; return o1 > o0 ? v0 + (v1 - v0) * (o - o0) / (o1 - o0) : v1; } return c[c.length - 1][1]; };
+    return [...new Set([...a, ...b].map(x => x[0]))].sort((x, y) => x - y).map(o => [o, at(a, o) + at(b, o)]);
   }
   const toneFor = ev => ev.kind === 'bass' ? 6 : ev.kind === 'keys' ? 2 : (ev.p < 50 ? 4 : ev.p < 60 ? 2 : 1);
   // build a note's string sound before it's needed (same store fire() uses)
@@ -2492,6 +2503,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
             if (n.hDest && n.hOrig && n.hOrig.ps === n.ps) g.push(`<text class="fx" x="${(bx - 9).toFixed(1)}" y="${yS(n.ps) - 4}" text-anchor="middle">${n.pf >= n.hOrig.pf ? 'h' : 'p'}</text>`);
             if (n.slide) g.push(`<text class="fx" x="${(bx + 9).toFixed(1)}" y="${yS(n.ps) + 4}" text-anchor="middle">/</text>`);
           });
+          if (b.wb) { const lo = Math.min(...b.wb.map(x => x[1])); if (lo < 0) fx.push('w/bar ' + (lo / 2 === -0.5 ? '−½' : '−' + (-lo / 2))); }
           const any = b.notes.filter(n => !n.dropped);
           [['pm', 'P.M.'], ['ring', 'l.r.']].forEach(([key, lab]) => {
             const on = any.some(n => n[key]), run = runs[b.voice + key];

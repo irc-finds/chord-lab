@@ -103,6 +103,14 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   "452Hz", the import offers "Set A = 452 Hz".
   Tempo: each bar's tempo comes from `masterBar.tempoAutomations`; a change of ≥ 3 bpm from the start of the current block opens a
   new block (smaller drifts are ignored so a rit doesn't splinter). Riff names go A…Z, then AA, AB…
+- Tremolo bar (sandbox): a progression may carry `wb` (same length as `pat`; '-' none, 'v' scoop = starts down and comes back
+  within ~⅓ count, 'd' dip and back, 'w' dive and hold) and `wbDepth` in half steps (1-6). Editor: "Tremolo bar" depth menu
+  (Off removes `wb`) and a row of small `.wstep` boxes under the strums; `setPatBars`/`setMeter`/`setSub` resize `wb` with `pat`.
+  Playback: `whammy()` bends every ringing voice's playbackRate (voices keep their base `rate`). GP export writes whammy points
+  (quarter tones). Import: `whammyOf` classifies each beat's `whammyBarPoints`; the pattern pick compares strum + bar together;
+  the preview says "Tremolo bar: scoops, 1 per bar, 1 step down". Songs plays beat whammy too (`note.wb`, timed by the beat's
+  own length `ev.wd`, added to string bends by `bendCurve`) and marks it "w/bar −1" in the tab. Tested with his newer
+  "who sees you" tab: rhythm guitar scoops up a whole step on the & of 2 in every bar.
 - Bass tones (main and sandbox): `BASS_RIGS` in `src/shell.html` / `sandbox/src/shell.html` (ids start `bass-`: finger, pick, vintage, bright,
   drive, fuzz, dream), listed under "Bass tones" in the Rig menu (first when the instrument is a bass). They use the same pedals;
   `isBass()` (a bass rig, `st.fx.bass`, or the bass instrument) switches a bass voicing in `applyFx` (guitar low cuts opened,

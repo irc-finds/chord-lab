@@ -35,6 +35,19 @@ function gpToParts(score, ti, opt) {
   const BR = M.BrushType || {}, PK = M.PickStroke || {};
   const isDown = b => b.brushType === BR.BrushDown || b.brushType === BR.ArpeggioDown || b.pickStroke === PK.Down;
   const isUp = b => b.brushType === BR.BrushUp || b.brushType === BR.ArpeggioUp || b.pickStroke === PK.Up;
+  // tremolo bar (Guitar Pro "whammy bar", values in quarter tones): v = starts down and comes back up (a scoop), d = dips and
+  // comes back, w = dives and stays down; '-' = no bar
+  const depths = {};
+  const whammyOf = b => {
+    const pts = b.hasWhammyBar && b.whammyBarPoints ? b.whammyBarPoints : null;
+    if (!pts || !pts.length) return '-';
+    const v = pts.map(x => x.value), lo = Math.min(...v), first = v[0], last = v[v.length - 1];
+    if (lo >= 0) return '-';
+    const semi = Math.min(6, Math.max(1, Math.round(-lo / 2))); depths[semi] = (depths[semi] || 0) + 1;
+    if (first < 0 && last > first) return 'v';
+    if (first === 0 && last === 0) return 'd';
+    return last < 0 ? 'w' : 'd';
+  };
 
   // ---- one record per bar ----
   let tempo = score.tempo || 120;
@@ -57,7 +70,7 @@ function gpToParts(score, ti, opt) {
           if (x.isDead) { dead++; return; }
           fr[si] = x.fret; live++; if (x.isPalmMute) pm++;
         });
-        beats.push({ start, dur, fr, live, dead, pm, rest: b.isRest || !b.notes.length, tie: b.notes.length > 0 && !sounding.length, down: isDown(b), up: isUp(b) });
+        beats.push({ start, dur, fr, live, dead, pm, rest: b.isRest || !b.notes.length, tie: b.notes.length > 0 && !sounding.length, down: isDown(b), up: isUp(b), wb: whammyOf(b) });
       });
     });
     return { bi, meter, num, den, countTicks, barTicks, tempo, beats, empty: !beats.some(b => !b.rest),
@@ -86,11 +99,13 @@ function gpToParts(score, ti, opt) {
   // ---- per bar: what's struck on each grid step (the shape and the stroke) ----
   const songTempo = bars.find(b => !b.empty) ? bars.find(b => !b.empty).tempo : tempo;
   const stepsOf = (b, sub) => {
-    const n0 = b.num * sub, step = b.countTicks / sub, out = new Array(n0).fill(null);
+    const n0 = b.num * sub, step = b.countTicks / sub, out = new Array(n0).fill(null), wb = new Array(n0).fill('-');
+    out.wb = wb;
     let prevEnd = 0, prevNotes = false;
     b.beats.forEach(bt => {
       const pos = Math.round(bt.start / step);
       if (pos < 0 || pos >= n0) return;
+      if (bt.wb !== '-' && !bt.rest) wb[pos] = bt.wb;
       if (bt.rest) { if (prevNotes && !out[pos]) out[pos] = { ch: 'S' }; prevNotes = false; return; }
       if (bt.tie) { prevNotes = true; return; }
       let ch;
@@ -141,7 +156,8 @@ function gpToParts(score, ti, opt) {
         shapes.push(lastShape);
         pat.push(!x ? '-' : x.ch === '?' ? dir(k) : x.ch);
       }
-      return { pat: pat.join(''), shapes, key: pat.join('') + '|' + shapes.join('|'), counts: bs[i].num };
+      const wb = g.wb.slice(0, steps).join('');
+      return { pat: pat.join(''), wb, pw: pat.join('') + '/' + wb, shapes, key: pat.join('') + '/' + wb + '|' + shapes.join('|'), counts: bs[i].num };
     });
     // the shortest phrase that repeats through the block (the last time round may stop early)
     let period = us.length;
@@ -160,6 +176,7 @@ function gpToParts(score, ti, opt) {
     pieces.forEach(pc => progOfBlock.push({ blk, pc, meter, num, den, sub, steps, tempo: bs[0].tempo }));
   });
 
+  const wbDepth = Number(Object.keys(depths).sort((x, y) => depths[y] - depths[x])[0]) || 2;   // how far the bar goes, in half steps
   // ---- each piece → a progression: a strum pattern of 1, 2 or 4 bars, and chords as short as the riff needs ----
   const parts = [];
   progOfBlock.forEach(({ blk, pc, meter, num, den, sub, steps, tempo: q }) => {
@@ -169,11 +186,11 @@ function gpToParts(score, ti, opt) {
       if (P > us.length && P > 1) return;
       const pat = [];
       for (let j = 0; j < P; j++) {
-        const c = {}; us.forEach((u, i) => { if (i % P === j && u.counts === num) c[u.pat] = (c[u.pat] || 0) + 1; });
-        pat.push(Object.keys(c).sort((x, y) => c[y] - c[x])[0] || us[j % us.length].pat);
+        const c = {}; us.forEach((u, i) => { if (i % P === j && u.counts === num) c[u.pw] = (c[u.pw] || 0) + 1; });
+        pat.push(Object.keys(c).sort((x, y) => c[y] - c[x])[0] || us[j % us.length].pw);
       }
-      const hit = us.filter((u, i) => u.pat === pat[i % P]).length;
-      if (!best || hit > best.hit) best = { P, pat: pat.join(''), hit };
+      const hit = us.filter((u, i) => u.pw === pat[i % P]).length;
+      if (!best || hit > best.hit) best = { P, pat: pat.map(x => x.split('/')[0]).join(''), wb: pat.map(x => x.split('/')[1]).join(''), hit };
     });
     // chords: runs of the same shape, step by step
     const runs = [];
@@ -193,12 +210,13 @@ function gpToParts(score, ti, opt) {
     if (!chords.length) return;
     const bpm = Math.max(30, Math.min(300, Math.round(den === 8 ? q * 2 : q)));
     parts.push({ name: blk.label, sectionStart: blk.sectionStart, times: pc.times * blk.times, bars: us.length * pc.times * blk.times,
-      patBars: best.hit * pc.times * blk.times, prog: { name: '', chords, sub, pat: best.pat, bpm, loop: true, meter } });
+      patBars: best.hit * pc.times * blk.times, prog: Object.assign({ name: '', chords, sub, pat: best.pat, bpm, loop: true, meter },
+        /[vdw]/.test(best.wb) ? { wb: best.wb, wbDepth } : {}) });
   });
   // the same music anywhere in the song shares one progression; next to itself it just plays more times
   const progs = [], order = [];
   parts.forEach(p => {
-    const k = JSON.stringify([p.prog.chords.map(c => [c.frets, c.bars || 0, c.beats || 0]), p.prog.sub, p.prog.pat, p.prog.bpm, p.prog.meter]);
+    const k = JSON.stringify([p.prog.chords.map(c => [c.frets, c.bars || 0, c.beats || 0]), p.prog.sub, p.prog.pat, p.prog.wb || '', p.prog.bpm, p.prog.meter]);
     let i = progs.findIndex(x => x.key === k);
     if (i < 0) { progs.push({ key: k, names: [], prog: p.prog, bars: p.bars / p.times, patBars: p.patBars, totalBars: p.bars }); i = progs.length - 1; }
     else { progs[i].patBars += p.patBars; progs[i].totalBars += p.bars; }
@@ -222,7 +240,7 @@ function gpToParts(score, ti, opt) {
     if (used[nm] > 1) nm += ' ' + String.fromCharCode(96 + used[nm]);   // Verse, Verse b, Verse c…
     x.name = nm; x.prog.name = nm; delete x.key;
   });
-  return { progs, order, sections: parts.length, direction: dirMode, inst, tuning: T, title: score.title || '', artist: score.artist || '', track: track.name || '' };
+  return { progs, order, sections: parts.length, whammy: progs.some(x => x.prog.wb), direction: dirMode, inst, tuning: T, title: score.title || '', artist: score.artist || '', track: track.name || '' };
 }
 
 if (typeof module !== 'undefined') module.exports = { gpTrackInfo, gpBestTrack, gpToParts };
