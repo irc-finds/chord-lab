@@ -924,59 +924,57 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     const many = t => t.bars.reduce((n, bar) => n + bar.filter(b => soundingOf(b).length >= 2).length, 0);
     const gtr = tr.kind === 'guitar' ? tr : song.tracks.filter(t => t.kind === 'guitar' && t.bars).sort((x, y) => many(y) - many(x))[0];
     const srcs = (gtr ? [gtr] : []).concat(basses);
-    const read = (bi, w0, w1) => {   // pitch-class weights and the bass root in [w0, w1) of bar bi
-      const wt = new Array(12).fill(0); let root = null, rootAt = Infinity, lowB = null, any = 0;
+    const lowOf = b => Math.min(...soundingOf(b));
+    const bassLineOf = bi => basses.flatMap(t => (t.bars[bi] || []).filter(b => b.staff === 0 && soundingOf(b).length)).sort((x, y) => x.start - y.start || lowOf(x) - lowOf(y));
+    const read = (bi, w0, w1, rootPc) => {   // pitch-class weights in [w0, w1) of bar bi; rootPc = the bass root to read on
+      const wt = new Array(12).fill(0); let any = 0;
       const ov = b => Math.min(w1, b.start + b.dur) - Math.max(w0, b.start);
       const gpcs = new Set(); if (gtr) (gtr.bars[bi] || []).forEach(b => { if (b.staff === 0 && ov(b) > 0) soundingOf(b).forEach(m => gpcs.add(((m % 12) + 12) % 12)); });
-      // a bass note that steps (1-2 half steps) to or from its neighbour, isn't on the downbeat and isn't in the guitar part is passing
-      const passing = new Set();
-      basses.forEach(t => {
-        const line = (t.bars[bi] || []).filter(b => b.staff === 0 && soundingOf(b).length).sort((x, y) => x.start - y.start);
-        line.forEach((b, i) => {
-          const lo = Math.min(...soundingOf(b)), pc = ((lo % 12) + 12) % 12;
-          const step = x => x && Math.abs(Math.min(...soundingOf(x)) - lo) >= 1 && Math.abs(Math.min(...soundingOf(x)) - lo) <= 2;
-          if (b.start > w0 && !gpcs.has(pc) && (step(line[i - 1]) || step(line[i + 1]))) passing.add(b);
-        });
+      // a bass note that steps (1-2 half steps) to or from its neighbour, off the downbeat, not the root and not in the guitar part is passing
+      const passing = new Set(), line = bassLineOf(bi);
+      line.forEach((b, i) => {
+        const lo = lowOf(b), pc = ((lo % 12) + 12) % 12;
+        const step = x => x && Math.abs(lowOf(x) - lo) >= 1 && Math.abs(lowOf(x) - lo) <= 2;
+        if (b.start > 0 && pc !== rootPc && !gpcs.has(pc) && (step(line[i - 1]) || step(line[i + 1]))) passing.add(b);
       });
       srcs.forEach(t => (t.bars[bi] || []).forEach(b => {
         if (b.staff !== 0 || passing.has(b)) return;
         const ms = soundingOf(b); if (!ms.length) return;
-        const o = Math.min(w1, b.start + b.dur) - Math.max(w0, b.start); if (o <= 0) return;
+        const o = ov(b); if (o <= 0) return;
         ms.forEach(m => { wt[((m % 12) + 12) % 12] += o; any += o; });
-        if (t.kind === 'bass') {
-          const lo = Math.min(...ms);
-          if (lowB === null || lo < lowB) lowB = lo;
-          if (b.start <= w0 && w0 < b.start + b.dur) { if (root === null || lo < root) root = lo; rootAt = w0; }
-          else if (b.start < rootAt && rootAt !== w0) { root = lo; rootAt = b.start; }
-        }
       }));
-      if (root === null) root = lowB;
       const len = w1 - w0, keep = new Set(); wt.forEach((x, pc) => { if (x >= len * 0.125) keep.add(pc); });
-      if (root !== null) keep.add(((root % 12) + 12) % 12);
-      return { keep, root, any };
+      if (rootPc !== null) keep.add(rootPc);
+      return { keep, root: rootPc, any };
+    };
+    // the bass root of a stretch: the bass note sounding on its downbeat, else the first one after it
+    const rootAt = (bi, w0) => {
+      const line = bassLineOf(bi), on = line.filter(b => b.start <= w0 && w0 < b.start + b.dur), after = line.filter(b => b.start >= w0);
+      const b = on.length ? on.sort((x, y) => lowOf(x) - lowOf(y))[0] : after[0];
+      return b ? ((lowOf(b) % 12) + 12) % 12 : null;
     };
     const name = r => {
       if (!r.any || r.keep.size < 2) return null;
-      const bp = r.root === null ? null : ((r.root % 12) + 12) % 12;
-      const midis = [r.root === null ? 36 + Math.min(...r.keep) : 36 + bp, ...[...r.keep].map(pc => 48 + pc)];
+      const bp = r.root, has = x => r.keep.has(((x % 12) + 12) % 12);
+      const midis = [bp === null ? 36 + Math.min(...r.keep) : 36 + bp, ...[...r.keep].map(pc => 48 + pc)];
       const cs = candidates(midis).filter(c => !c.upper); if (!cs.length) return null;
-      const onRoot = bp === null ? null : cs.find(c => c.root === bp);
-      const c = onRoot && onRoot.score >= cs[0].score - 2.5 ? onRoot : cs[0];
+      // prefer the bass root and readings with a whole triad in them (A over a bass E is A/E, not E6sus4)
+      const val = c => c.score + (c.root === bp ? 1 : 0) + ((has(c.root + 3) || has(c.root + 4)) && has(c.root + 7) ? 2 : 0);
+      const c = cs.slice().sort((x, y) => val(y) - val(x))[0];
       if (r.keep.size === 2 && c.body !== '5' && !c.paren.includes('no5')) return null;
       return formatName(c, nm);
     };
     let last = null;
     tr.bars.forEach((bar, bi) => {
       const mb = song.bars[bi], dur = mb.dur, even = mb.ts[0] % 2 === 0 && mb.ts[0] >= 2;
-      let wins = [[0, dur]];
-      if (even) {
-        const A = read(bi, 0, dur / 2), B = read(bi, dur / 2, dur);
-        const bRoot = B.root === null ? null : ((B.root % 12) + 12) % 12;
-        const same = A.any && (!B.any || ([...B.keep].every(pc => A.keep.has(pc)) && (bRoot === null || A.keep.has(bRoot))));
-        if (!same) wins = [[0, dur / 2], [dur / 2, dur]];
+      const r0 = rootAt(bi, 0);
+      let wins = [[0, dur, r0]];
+      if (even) {   // the bar splits only when the bass moves to a note the first half's chord doesn't have
+        const A = read(bi, 0, dur / 2, r0), r1 = rootAt(bi, dur / 2);
+        if (r1 !== null && r1 !== r0 && !A.keep.has(r1)) wins = [[0, dur / 2, r0], [dur / 2, dur, r1]];
       }
-      wins.forEach(([w0, w1]) => {
-        const lab = name(read(bi, w0, w1));
+      wins.forEach(([w0, w1, rt]) => {
+        const lab = name(read(bi, w0, w1, rt));
         if (!lab || lab === last) return;
         const first = bar.filter(b => b.staff === 0 && b.start >= w0 && b.start < w1).sort((x, y) => x.start - y.start)[0];
         if (first) { first.chordLabel = lab; last = lab; }

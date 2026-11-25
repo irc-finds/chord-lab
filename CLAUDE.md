@@ -114,12 +114,14 @@ Explain changes in plain words, never ask him to run commands, and push the chan
 - Two-note chords (sandbox): `analyze` marks a 2-pitch-class set with a 3rd and no 5th as `no5` and prefers the power-chord reading
   for a 4th (A5/E over Esus4). `dyadName` (Chord Finder readout and saved chords) and Songs' `chordOf` name a dyad only when it's a
   5th (E5, A5/E) or a 3rd/6th (E(no5), Em(no5), F#m(no5)/A); 2nds, tritones and 7ths stay "E + F#" / unnamed.
-  Songs with a bass track (`labelByWindows`, used unless the tab has its own chord names): chords are read per bar, or per half
-  bar (even meters) when the 2nd half brings notes or a bass root the 1st half lacks. Each stretch sums the chord guitar's
-  (viewed track, else the most chordal guitar) and every bass track's notes weighted by ring time; < 1/8 of the stretch = dropped;
-  bass notes that step 1-2 half steps to a neighbour, off the downbeat and not in the guitar part are passing. Root = bass note on
-  the stretch's downbeat (else lowest bass note); a reading on it wins within 2.5 of the best score. The label goes on the viewed
-  track's first beat in the stretch (bass view shows the same chords). D-A-C# bass under F#+A / A+C# / E+A = Dmaj9, then Amaj9.
+  Songs with a bass track (`labelByWindows`, used unless the tab has its own chord names): one chord per bar, read on the bar's
+  bass root (the bass note on the downbeat, `rootAt`); the bar splits in half (even meters) only when the bass's note at the half
+  is a new root the first half's notes don't contain. Each stretch sums the chord guitar's (viewed track, else the most chordal
+  guitar) and every bass track's notes weighted by ring time; < 1/8 of the stretch = dropped; bass notes that step 1-2 half steps
+  to a neighbour, off the downbeat, not the root and not in the guitar part are passing. The reading is picked by engine score
+  + 1 if its root is the bass root + 2 if it holds a whole triad (A5 over a bass E-D-C# = A/E, not E6sus4). Repeats of the last
+  label aren't drawn. Tested with his D.S.O tab (Worn Out Shoes, 10/8, bass riff D A A C# A A A C# D C#): the verse reads
+  Dmaj7(#11, add13) / D6/9(#11) / D(add9), not a new name per strum (before: Dmaj7 then "Amaj9" in each bar's 2nd half).
   Without a bass the old per-strum naming runs (`withBass` still adds a bass note when a file has chord names).
 - Bass tones (main and sandbox): `BASS_RIGS` in `src/shell.html` / `sandbox/src/shell.html` (ids start `bass-`: finger, pick, vintage, bright,
   drive, fuzz, dream), listed under "Bass tones" in the Rig menu (first when the instrument is a bass). They use the same pedals;
