@@ -913,22 +913,81 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     if (pcs.has(bp)) { const d = candidates([b, ...own]).find(x => !x.upper); if (d) return formatName(d, nm); }
     return nameOnly;
   }
+  // With a bass track, chords are read over stretches of the music instead of strum by strum: each bar (or each half, when the
+  // second half brings a new bass root or notes the first half doesn't have) gathers the bass line's notes and the chord guitar's
+  // notes, weighted by how long they ring. Notes heard for less than ~1/8 of the stretch are passing notes. The root is the bass
+  // note on the stretch's downbeat (else its lowest bass note); a reading on that root wins unless another is much simpler.
+  // So a bass walking D–A–C# under F#+A, A+C# reads Dmaj7, not a new name per strum. Returns false when there's no bass.
+  function labelByWindows(tr) {
+    const basses = song.tracks.filter(t => t.kind === 'bass' && t.bars);
+    if (!basses.length) return false;
+    const many = t => t.bars.reduce((n, bar) => n + bar.filter(b => soundingOf(b).length >= 2).length, 0);
+    const gtr = tr.kind === 'guitar' ? tr : song.tracks.filter(t => t.kind === 'guitar' && t.bars).sort((x, y) => many(y) - many(x))[0];
+    const srcs = (gtr ? [gtr] : []).concat(basses);
+    const read = (bi, w0, w1) => {   // pitch-class weights and the bass root in [w0, w1) of bar bi
+      const wt = new Array(12).fill(0); let root = null, rootAt = Infinity, lowB = null, any = 0;
+      const ov = b => Math.min(w1, b.start + b.dur) - Math.max(w0, b.start);
+      const gpcs = new Set(); if (gtr) (gtr.bars[bi] || []).forEach(b => { if (b.staff === 0 && ov(b) > 0) soundingOf(b).forEach(m => gpcs.add(((m % 12) + 12) % 12)); });
+      // a bass note that steps (1-2 half steps) to or from its neighbour, isn't on the downbeat and isn't in the guitar part is passing
+      const passing = new Set();
+      basses.forEach(t => {
+        const line = (t.bars[bi] || []).filter(b => b.staff === 0 && soundingOf(b).length).sort((x, y) => x.start - y.start);
+        line.forEach((b, i) => {
+          const lo = Math.min(...soundingOf(b)), pc = ((lo % 12) + 12) % 12;
+          const step = x => x && Math.abs(Math.min(...soundingOf(x)) - lo) >= 1 && Math.abs(Math.min(...soundingOf(x)) - lo) <= 2;
+          if (b.start > w0 && !gpcs.has(pc) && (step(line[i - 1]) || step(line[i + 1]))) passing.add(b);
+        });
+      });
+      srcs.forEach(t => (t.bars[bi] || []).forEach(b => {
+        if (b.staff !== 0 || passing.has(b)) return;
+        const ms = soundingOf(b); if (!ms.length) return;
+        const o = Math.min(w1, b.start + b.dur) - Math.max(w0, b.start); if (o <= 0) return;
+        ms.forEach(m => { wt[((m % 12) + 12) % 12] += o; any += o; });
+        if (t.kind === 'bass') {
+          const lo = Math.min(...ms);
+          if (lowB === null || lo < lowB) lowB = lo;
+          if (b.start <= w0 && w0 < b.start + b.dur) { if (root === null || lo < root) root = lo; rootAt = w0; }
+          else if (b.start < rootAt && rootAt !== w0) { root = lo; rootAt = b.start; }
+        }
+      }));
+      if (root === null) root = lowB;
+      const len = w1 - w0, keep = new Set(); wt.forEach((x, pc) => { if (x >= len * 0.125) keep.add(pc); });
+      if (root !== null) keep.add(((root % 12) + 12) % 12);
+      return { keep, root, any };
+    };
+    const name = r => {
+      if (!r.any || r.keep.size < 2) return null;
+      const bp = r.root === null ? null : ((r.root % 12) + 12) % 12;
+      const midis = [r.root === null ? 36 + Math.min(...r.keep) : 36 + bp, ...[...r.keep].map(pc => 48 + pc)];
+      const cs = candidates(midis).filter(c => !c.upper); if (!cs.length) return null;
+      const onRoot = bp === null ? null : cs.find(c => c.root === bp);
+      const c = onRoot && onRoot.score >= cs[0].score - 2.5 ? onRoot : cs[0];
+      if (r.keep.size === 2 && c.body !== '5' && !c.paren.includes('no5')) return null;
+      return formatName(c, nm);
+    };
+    let last = null;
+    tr.bars.forEach((bar, bi) => {
+      const mb = song.bars[bi], dur = mb.dur, even = mb.ts[0] % 2 === 0 && mb.ts[0] >= 2;
+      let wins = [[0, dur]];
+      if (even) {
+        const A = read(bi, 0, dur / 2), B = read(bi, dur / 2, dur);
+        const bRoot = B.root === null ? null : ((B.root % 12) + 12) % 12;
+        const same = A.any && (!B.any || ([...B.keep].every(pc => A.keep.has(pc)) && (bRoot === null || A.keep.has(bRoot))));
+        if (!same) wins = [[0, dur / 2], [dur / 2, dur]];
+      }
+      wins.forEach(([w0, w1]) => {
+        const lab = name(read(bi, w0, w1));
+        if (!lab || lab === last) return;
+        const first = bar.filter(b => b.staff === 0 && b.start >= w0 && b.start < w1).sort((x, y) => x.start - y.start)[0];
+        if (first) { first.chordLabel = lab; last = lab; }
+      });
+    });
+    return true;
+  }
   function labelChords(tr) {
     if (!tr) return;
-    if (tr.kind === 'bass') {   // a bass track shows the chords the guitar plays over it
-      const many = t => t.bars.reduce((n, bar) => n + bar.filter(b => soundingOf(b).length >= 2).length, 0);
-      const g = song.tracks.filter(t => t.kind === 'guitar' && t.bars).sort((x, y) => many(y) - many(x))[0];
-      if (g && many(g) > 0) {
-        labelChords(g);
-        const marks = []; g.bars.forEach((bar, bi) => bar.forEach(b => { if (b.staff === 0 && b.voice === 0 && b.chordLabel) marks.push([bi, b.start, b.chordLabel]); }));
-        let k = 0, cur = null, curBi = -9;
-        tr.bars.forEach((bar, bi) => [...bar].sort((x, y) => x.start - y.start).forEach(b => {
-          while (k < marks.length && (marks[k][0] < bi || (marks[k][0] === bi && marks[k][1] <= b.start))) { cur = marks[k][2]; curBi = marks[k][0]; k++; }
-          b.chordLabel = cur && bi - curBi <= 1 && soundingOf(b).length ? cur : null;
-        }));
-        return;
-      }
-    }
+    tr.bars.forEach(bar => bar.forEach(b => { b.chordLabel = null; }));
+    if (!tr.bars.some(bar => bar.some(b => b.chordName)) && labelByWindows(tr)) return;   // a bass line to read with: name the harmony
     const bassAt = bassLine(tr);
     const sounding = soundingOf;
     const within = (pcs, set) => pcs.every(x => set.has(x));
