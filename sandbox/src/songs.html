@@ -891,9 +891,46 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     if (pcs.length === 2 && c.body !== '5' && !c.paren.includes('no5')) return null;
     return formatName(c, nm);
   }
+  // The bass decides the root: when a guitar chord starts, the bass note sounding then is added under it. It becomes the root when
+  // the result is a plain chord on that note (F# + A over a bass D = D); otherwise, if it's one of the chord's notes, it's the slash
+  // note; otherwise (a passing note) the guitar's own name stays. Viewing a bass track shows the guitar's chords.
+  const soundingOf = b => b.notes.filter(n => !n.dropped && !n.dead && n.ps >= 0 && n.pp !== undefined).map(n => n.pp);
+  function bassLine(except) {
+    const bt = song.tracks.filter(t => t.kind === 'bass' && t !== except && t.bars);
+    if (!bt.length) return null;
+    return (bi, s) => {
+      let lo = null;
+      bt.forEach(t => (t.bars[bi] || []).forEach(b => { if (b.staff === 0 && b.start <= s && s < b.start + b.dur) soundingOf(b).forEach(m => { if (lo === null || m < lo) lo = m; }); }));
+      return lo;
+    };
+  }
+  const PLAIN = /^(no5|no3|add9|add11|add13)$/;
+  function withBass(own, bass, nameOnly) {
+    const pcs = new Set(own.map(m => ((m % 12) + 12) % 12)), bp = ((bass % 12) + 12) % 12;
+    const low = Math.min(...own); let b = bass; while (b >= low) b -= 12;   // the bass under everything
+    const c = candidates([b, ...own])[0];
+    if (c && c.root === bp && !c.slash && c.paren.every(x => PLAIN.test(x))) return formatName(c, nm);
+    if (pcs.has(bp)) { const d = candidates([b, ...own]).find(x => !x.upper); if (d) return formatName(d, nm); }
+    return nameOnly;
+  }
   function labelChords(tr) {
     if (!tr) return;
-    const sounding = b => b.notes.filter(n => !n.dropped && !n.dead && n.ps >= 0 && n.pp !== undefined).map(n => n.pp);
+    if (tr.kind === 'bass') {   // a bass track shows the chords the guitar plays over it
+      const many = t => t.bars.reduce((n, bar) => n + bar.filter(b => soundingOf(b).length >= 2).length, 0);
+      const g = song.tracks.filter(t => t.kind === 'guitar' && t.bars).sort((x, y) => many(y) - many(x))[0];
+      if (g && many(g) > 0) {
+        labelChords(g);
+        const marks = []; g.bars.forEach((bar, bi) => bar.forEach(b => { if (b.staff === 0 && b.voice === 0 && b.chordLabel) marks.push([bi, b.start, b.chordLabel]); }));
+        let k = 0, cur = null, curBi = -9;
+        tr.bars.forEach((bar, bi) => [...bar].sort((x, y) => x.start - y.start).forEach(b => {
+          while (k < marks.length && (marks[k][0] < bi || (marks[k][0] === bi && marks[k][1] <= b.start))) { cur = marks[k][2]; curBi = marks[k][0]; k++; }
+          b.chordLabel = cur && bi - curBi <= 1 && soundingOf(b).length ? cur : null;
+        }));
+        return;
+      }
+    }
+    const bassAt = bassLine(tr);
+    const sounding = soundingOf;
     const within = (pcs, set) => pcs.every(x => set.has(x));
     // the notes a written chord name stands for (Chord Lab's chord-name reader); null if the name can't be read
     const namePcs = name => { try { const r = parseChordName(name); if (!r || r.error) return null; return new Set([...r.req, ...r.opt].map(d => (d + r.root) % 12).concat(r.bass !== null && r.bass !== undefined ? [r.bass] : [])); } catch (e) { return null; } };
@@ -910,6 +947,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         if (held && (!pcs.length || within(pcs, held.pcs))) { b.chordLabel = pcs.length ? held.name : null; return; }   // same chord: upstrokes, partial strums, ringing notes
         held = null;
         let lab = chordOf(own);
+        const bass = bassAt && own.length ? bassAt(bi, b.start) : null;
+        if (bass !== null && bass !== undefined && pcs.length >= 2) lab = withBass(own, bass, lab);   // single melody notes keep no name
         if (!lab && b.notes.length) {   // single notes left ringing: read the arpeggio over this half bar as one chord
           const w0 = Math.floor(b.start / half) * half, win = bs.filter(x => x.start >= w0 && x.start < w0 + half);
           if (win.some(x => x.notes.some(n => n.ring))) { const ns = win.flatMap(sounding); if (new Set(ns.map(m => m % 12)).size >= 3) lab = chordOf(ns); }

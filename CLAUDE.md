@@ -114,6 +114,10 @@ Explain changes in plain words, never ask him to run commands, and push the chan
 - Two-note chords (sandbox): `analyze` marks a 2-pitch-class set with a 3rd and no 5th as `no5` and prefers the power-chord reading
   for a 4th (A5/E over Esus4). `dyadName` (Chord Finder readout and saved chords) and Songs' `chordOf` name a dyad only when it's a
   5th (E5, A5/E) or a 3rd/6th (E(no5), Em(no5), F#m(no5)/A); 2nds, tritones and 7ths stay "E + F#" / unnamed.
+  Songs takes the bass into account (`bassLine`, `withBass` in `labelChords`): when a guitar chord is named, the lowest bass-track
+  note sounding at that beat goes under it; it becomes the root if the result is a plain chord on it (only no5/no3/add9/11/13 in
+  brackets: F# + A over D = D), else the slash note if it's a chord tone, else the guitar's own name stays (passing notes).
+  Single guitar notes stay unnamed. Viewing a bass track shows the most chordal guitar track's chords at each bass beat.
 - Bass tones (main and sandbox): `BASS_RIGS` in `src/shell.html` / `sandbox/src/shell.html` (ids start `bass-`: finger, pick, vintage, bright,
   drive, fuzz, dream), listed under "Bass tones" in the Rig menu (first when the instrument is a bass). They use the same pedals;
   `isBass()` (a bass rig, `st.fx.bass`, or the bass instrument) switches a bass voicing in `applyFx` (guitar low cuts opened,
