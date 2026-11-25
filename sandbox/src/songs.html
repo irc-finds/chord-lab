@@ -886,11 +886,10 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     if (!midis.length) return null;
     const pcs = [...new Set(midis.map(m => ((m % 12) + 12) % 12))];
     if (pcs.length < 2) return null;
-    if (pcs.length === 2) {   // two notes: only a fifth makes a named chord (a power chord)
-      const lo = Math.min(...midis), other = midis.find(m => ((m - lo) % 12 + 12) % 12 !== 0);
-      return ((other - lo) % 12 + 12) % 12 === 7 ? nm(lo) + '5' : null;
-    }
-    const c = candidates(midis)[0]; return c ? formatName(c, nm) : null;
+    const c = candidates(midis)[0]; if (!c) return null;
+    // two notes: only a fifth (power chord, E5) or a third (E(no5), Em(no5)) makes a chord; a 2nd, 4th-as-sus or tritone stays unnamed
+    if (pcs.length === 2 && c.body !== '5' && !c.paren.includes('no5')) return null;
+    return formatName(c, nm);
   }
   function labelChords(tr) {
     if (!tr) return;

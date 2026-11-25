@@ -46,6 +46,8 @@ function analyze(root, pcs, bass) {
   let unexplained = 0;
   if (h(10) && !used.has(10)) { adds.push('add b7'); unexplained++; }
   if (tri === 'no3' && body !== '5') omits.push('no3');
+  const dyad = S.size === 2;   // two different notes: a fifth is a power chord, a third is a chord with no 5th
+  if (dyad && (tri === 'maj' || tri === 'min') && !h(7)) omits.push('no5');
   const paren = [...alts, ...adds, ...omits];
   let s = 0;
   if (root === bass) s += 2;
@@ -57,6 +59,7 @@ function analyze(root, pcs, bass) {
   alts.forEach(t => { s -= t === '#11' ? 0.8 : 1.5; if (t === '#5' && tri !== 'aug') s -= 1; });
   s -= adds.length * 0.6 + unexplained * 1.5;
   if (sharp9) s -= 0.5;
+  if (dyad) { if (body === '5') s += 2; else if (tri === 'sus4' || tri === 'sus2') s -= 2; }
   const labels = {
     0: 'R', 1: 'b9', 2: tri === 'sus2' ? '2' : '9', 3: third === 'm' ? 'b3' : '#9', 4: '3',
     5: tri === 'sus4' ? '4' : '11', 6: tri === 'dim' ? 'b5' : (h(7) || tri === 'maj' || tri === 'aug' ? '#11' : 'b5'), 7: '5',

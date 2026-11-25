@@ -111,6 +111,9 @@ Explain changes in plain words, never ask him to run commands, and push the chan
   the preview says "Tremolo bar: scoops, 1 per bar, 1 step down". Songs plays beat whammy too (`note.wb`, timed by the beat's
   own length `ev.wd`, added to string bends by `bendCurve`) and marks it "w/bar −1" in the tab. Tested with his newer
   "who sees you" tab: rhythm guitar scoops up a whole step on the & of 2 in every bar.
+- Two-note chords (sandbox): `analyze` marks a 2-pitch-class set with a 3rd and no 5th as `no5` and prefers the power-chord reading
+  for a 4th (A5/E over Esus4). `dyadName` (Chord Finder readout and saved chords) and Songs' `chordOf` name a dyad only when it's a
+  5th (E5, A5/E) or a 3rd/6th (E(no5), Em(no5), F#m(no5)/A); 2nds, tritones and 7ths stay "E + F#" / unnamed.
 - Bass tones (main and sandbox): `BASS_RIGS` in `src/shell.html` / `sandbox/src/shell.html` (ids start `bass-`: finger, pick, vintage, bright,
   drive, fuzz, dream), listed under "Bass tones" in the Rig menu (first when the instrument is a bass). They use the same pedals;
   `isBass()` (a bass rig, `st.fx.bass`, or the bass instrument) switches a bass voicing in `applyFx` (guitar low cuts opened,

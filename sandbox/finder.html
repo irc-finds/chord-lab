@@ -876,6 +876,8 @@ function analyze(root, pcs, bass) {
   let unexplained = 0;
   if (h(10) && !used.has(10)) { adds.push('add b7'); unexplained++; }
   if (tri === 'no3' && body !== '5') omits.push('no3');
+  const dyad = S.size === 2;   // two different notes: a fifth is a power chord, a third is a chord with no 5th
+  if (dyad && (tri === 'maj' || tri === 'min') && !h(7)) omits.push('no5');
   const paren = [...alts, ...adds, ...omits];
   let s = 0;
   if (root === bass) s += 2;
@@ -887,6 +889,7 @@ function analyze(root, pcs, bass) {
   alts.forEach(t => { s -= t === '#11' ? 0.8 : 1.5; if (t === '#5' && tri !== 'aug') s -= 1; });
   s -= adds.length * 0.6 + unexplained * 1.5;
   if (sharp9) s -= 0.5;
+  if (dyad) { if (body === '5') s += 2; else if (tri === 'sus4' || tri === 'sus2') s -= 2; }
   const labels = {
     0: 'R', 1: 'b9', 2: tri === 'sus2' ? '2' : '9', 3: third === 'm' ? 'b3' : '#9', 4: '3',
     5: tri === 'sus4' ? '4' : '11', 6: tri === 'dim' ? 'b5' : (h(7) || tri === 'maj' || tri === 'aug' ? '#11' : 'b5'), 7: '5',
@@ -1293,7 +1296,7 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
     if (pcs.length === 2) {
       const lo = Math.min(...ms), other = ms.find(m => m % 12 !== lo % 12);
       const d = ((other - lo) % 12 + 12) % 12;
-      nameEl.textContent = d === 7 ? nm(lo) + '5' : nm(lo) + ' + ' + nm(other);
+      nameEl.textContent = dyadName(ms);
       sub.textContent = 'Interval: ' + INTERVAL_NAMES[d] + ' · notes ' + ms.map(pname).join(' ');
       return;
     }
@@ -1821,14 +1824,21 @@ function findVoicings(tuning, maxFret, spec, o = {}) {
 
   const P = () => st.prog;
   const clone = o => JSON.parse(JSON.stringify(o));
+  // two different notes: a fifth is a power chord (E5, A5/E), a third a chord with no 5th (E(no5), Em(no5), F#m(no5)/A);
+  // anything else is just the two notes
+  function dyadName(ms) {
+    const c = candidates(ms)[0];
+    if (c && (c.body === '5' || c.paren.includes('no5'))) return fmt(c);
+    const lo = Math.min(...ms), other = ms.find(m => m % 12 !== lo % 12);
+    return nm(lo) + ' + ' + nm(other);
+  }
   function nameOf(c) {
     const ms = c.frets.map((f, i) => f === null ? null : c.tuning[i] + f).filter(m => m !== null);
     if (!ms.length) return '—';
     const pcs = [...new Set(ms.map(m => m % 12))];
     if (pcs.length === 1) return nm(pcs[0]);
     if (pcs.length === 2) {
-      const lo = Math.min(...ms), other = ms.find(m => m % 12 !== lo % 12);
-      return ((other - lo) % 12 + 12) % 12 === 7 ? nm(lo) + '5' : nm(lo) + ' + ' + nm(other);
+      return dyadName(ms);
     }
     const cs = candidates(ms);
     const pick = (c.rootPick !== null && c.rootPick !== undefined && (cs.find(x => x.root === c.rootPick && !x.upper) || cs.find(x => x.root === c.rootPick))) || cs[0];
